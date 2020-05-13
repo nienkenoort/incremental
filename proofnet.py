@@ -79,7 +79,7 @@ class Axioma:
                     #als polarity anders is en type is hetzelfde, dan kan je een verbinding maken
                     createAxioma(root)
 
-        return vertex
+        return root
         #kijk voor deze knoop wat zijn polarity is (vertex.polarity)
         #kijk voor deze knoop wat de inhoud van de knoop is (vertex.data)
     
@@ -99,6 +99,15 @@ class BuildStartTree:
     def __init__(self, linkedList):
         self.linkedList = linkedList
 
+    def find_leaf(self, root):
+            #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
+            while root.left != None and root.right != None:
+                #zolang root kinderen heeft, ga naar kind
+                self.find_leaf(root.left)
+                self.find_leaf(root.right)
+            print(root.data)
+            return root
+        
     def readRoot(self):
         '''read what type is in the root, depending on this, call /,\,*'''
         linkedList = self.linkedList
@@ -111,22 +120,11 @@ class BuildStartTree:
             right_pol = None
             tree = Tree()
             root = tree.insertVertex(root, node.data, "root", 1)
+            #prev_data_root = root.data
             #check the connective of the root and call that connective class
             # nu pakt hij een type zoals (N/N)\N niet goed, want hij kijkt eerst naar / terwijl hij naar \ moet kijken
             for index in range(0, len(node.data[1])):
-                '''if "(" in node.data[1]:
-                    part_of_element = node.data[1][1:4]
-                    print(part_of_element)'''
                 
-                '''
-                split = re.split(r'[()]', node.data[1], 1) #nu blijft de laatste ) staan
-                #print(split)
-                for element in split:
-                    if element == ")":
-                        split.remove(element)
-                        
-                print (split)'''
-                #if split != node.data[1]
                 inner = re.sub('[()]', '', node.data[1])
                 #print(inner)
                 if node.data[1][index] == "/":
@@ -163,19 +161,10 @@ class BuildStartTree:
                 tree.insertVertex(root, (right_vertex, right_pol), "right", right_pol)
             #print("pauze")
             #tree.traverseInorder(root)
-            if node.next:
-                node = node.next
-            else:
-                #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
-                
-                #axioma_object = Axioma()
-        #root = tree.insertVertex(root, "henlo", "left") #insert a root of 10. In my case insert a word 
-        #tree.insertVertex(root, "amigo", "right")
-        #tree.insertVertex(root, "linkseamigo", "left")
-        #tree.traverseInorder(root)
-        #print("pauze")
-        #tree.removeVertex(root, "amigo") #de node is nu wel verwijderd, maar is nog steeds de rechter node van de root
-        #tree.traverseInorder(root)
+            node = node.next
+            #doe dit alleen als de huidige root anders is dan vorige root
+            axiom_root = self.find_leaf(root)
+            axioma_object = Axioma(axiom_root, axiom_root.polarity)
 
 
 class Over:
@@ -249,16 +238,6 @@ class Product:
 
 def main():
     '''parsen string input + print output'''
-    '''
-    root = None
-    tree = Tree()
-    root = tree.insertVertex(root, "henlo", "left") #insert a root of 10. In my case insert a word 
-    tree.insertVertex(root, "amigo", "right")
-    tree.insertVertex(root, "linkseamigo", "left")
-    tree.traverseInorder(root)
-    print("pauze")
-    tree.removeVertex(root, "amigo") #de node is nu wel verwijderd, maar is nog steeds de rechter node van de root
-    tree.traverseInorder(root)'''
     #---------------------------------------
     read_sentence = read
     linkedlist = read_sentence.lijst
