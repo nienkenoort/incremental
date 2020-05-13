@@ -60,11 +60,31 @@ class Tree:
 
 
 class Axioma:
-    def __init__(self, type1, type2):
-        '''kijken welke axioma's moeten ontstaan tussen type1 en type2'''
+    def __init__(self, vertex, polarity):
+        '''kijken welke axioma's moeten ontstaan vanuit vertex met polarity'''
+        self.vertex = vertex
+        self.polarity = polarity
+
+    def find_vertex(self, root):
+        '''vind een knoop waarmee de input vertex een axioma verbinding mee kan vormen'''
+        #ga hele boom na en kijk welke knoop geen linker en rechter buur heeft. 
+        if root != None:
+            if root.left != None and root.right != None:
+                #als left en right niet None zijn, dan wil je naar de kinderen kijken
+                self.find_vertex(root.left)
+                self.find_vertex(root.right)
+            else:
+                #als de huidige root geen kinderen heeft, dan kan hij gebruikt worden voor het maken van een axiomaverbinding
+                if self.polarity != root.polarity and root.data == vertex.data:
+                    #als polarity anders is en type is hetzelfde, dan kan je een verbinding maken
+                    createAxioma(root)
+
+        return vertex
+        #kijk voor deze knoop wat zijn polarity is (vertex.polarity)
+        #kijk voor deze knoop wat de inhoud van de knoop is (vertex.data)
     
-    def createAxioma(self, type1, type2):
-        '''het creeren van axioma verbinding tussen type1 en type2.
+    def createAxioma(self, root):
+        '''het creeren van axioma verbinding tussen vertex en andere knoop.
         ALTIJD VERBINDING MAKEN VAN MET EEN TYPE VAN EEN ANDER WOORD. 
         Begin bij S(output), ga naar een S(input). Als deze S een left tag heeft, kijk naar het woord dat een right tag heeft en vind hierbij een type.
         Als het woord een right tag heeft, ga naar de left tag en vind hierbij een type.
@@ -97,10 +117,18 @@ class BuildStartTree:
                 '''if "(" in node.data[1]:
                     part_of_element = node.data[1][1:4]
                     print(part_of_element)'''
+                
                 '''
                 split = re.split(r'[()]', node.data[1], 1) #nu blijft de laatste ) staan
-                print(split)'''
+                #print(split)
+                for element in split:
+                    if element == ")":
+                        split.remove(element)
+                        
+                print (split)'''
                 #if split != node.data[1]
+                inner = re.sub('[()]', '', node.data[1])
+                #print(inner)
                 if node.data[1][index] == "/":
                     over_obj = Over(node.data[1], node.data[2])
                     parsen = over_obj.parse_root()
@@ -135,7 +163,19 @@ class BuildStartTree:
                 tree.insertVertex(root, (right_vertex, right_pol), "right", right_pol)
             #print("pauze")
             #tree.traverseInorder(root)
-            node = node.next
+            if node.next:
+                node = node.next
+            else:
+                #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
+                
+                #axioma_object = Axioma()
+        #root = tree.insertVertex(root, "henlo", "left") #insert a root of 10. In my case insert a word 
+        #tree.insertVertex(root, "amigo", "right")
+        #tree.insertVertex(root, "linkseamigo", "left")
+        #tree.traverseInorder(root)
+        #print("pauze")
+        #tree.removeVertex(root, "amigo") #de node is nu wel verwijderd, maar is nog steeds de rechter node van de root
+        #tree.traverseInorder(root)
 
 
 class Over:
@@ -195,7 +235,7 @@ class Product:
         left = split[0]
         right = split[1]
         return left, right
-        
+
     def get_polarity(self):
         '''de polariteit van beide dat ze input moeten zijn (gevuld rondje). BIJ EEN INPUT POLARITY ROOT.'''
         if self.polarity == 1:
@@ -209,10 +249,25 @@ class Product:
 
 def main():
     '''parsen string input + print output'''
+    '''
+    root = None
+    tree = Tree()
+    root = tree.insertVertex(root, "henlo", "left") #insert a root of 10. In my case insert a word 
+    tree.insertVertex(root, "amigo", "right")
+    tree.insertVertex(root, "linkseamigo", "left")
+    tree.traverseInorder(root)
+    print("pauze")
+    tree.removeVertex(root, "amigo") #de node is nu wel verwijderd, maar is nog steeds de rechter node van de root
+    tree.traverseInorder(root)'''
+    #---------------------------------------
     read_sentence = read
     linkedlist = read_sentence.lijst
     obj = BuildStartTree(linkedlist)
     read_root = obj.readRoot()
+    #-------------------------------------
+    vertex_obj = Vertex("hoi", 1)
+    ax_obj = Axioma(vertex_obj, vertex_obj.polarity)
+    create = ax_obj.find_vertex(vertex_obj)
 
 if __name__ == '__main__':
     main()
