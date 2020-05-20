@@ -8,7 +8,7 @@ over = Literal("/")
 tensor = Literal("*")
 #arrowexp_ = over + typedec_ 
 
-typeexp_ = infixNotation(atom_, [(over, 2, opAssoc.RIGHT), (under, 2, opAssoc.RIGHT), (tensor, 2, opAssoc.RIGHT), ('(', 2, opAssoc.RIGHT), (')', 2, opAssoc.LEFT)],)
+typeexp_ = infixNotation(atom_, [(over, 2, opAssoc.RIGHT), (under, 2, opAssoc.RIGHT), (tensor, 2, opAssoc.RIGHT)],)
 
 def strToPol(str_):
     return unfoldExp(typeexp_.parseString(str_).asList()[0])
