@@ -10,4 +10,11 @@ typeexpr = infixNotation(typestring, [(over, 2, opAssoc.RIGHT), (under, 2, opAss
 
 inputtype = "(N \\ S) / NP"
 typelist = typeexpr.parseString(inputtype).asList()[0]
-print(typelist)
+
+for element in typelist:
+    if element == '/':
+        print("roep de over methode aan")
+    elif element == '\\':
+        print("roep under methode aan")
+    elif element == '*':
+        print("roep de tensor methode aan")
