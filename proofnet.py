@@ -1,6 +1,7 @@
 import re
 from input_parser import read
 import lexicon_parser
+import type_parser
 
 class Vertex:
     def __init__(self, data, polarity):
@@ -103,9 +104,10 @@ class BuildStartTree:
             #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
             while root.left != None and root.right != None:
                 #zolang root kinderen heeft, ga naar kind
+                print(root.left.data)
                 self.find_leaf(root.left)
                 self.find_leaf(root.right)
-            print(root.data)
+            #print(root.data)
             return root
         
     def readRoot(self):
@@ -113,6 +115,7 @@ class BuildStartTree:
         linkedList = self.linkedList
         node = linkedList.root
         while node:
+            print(node.data)
             root = None
             left_vertex = None
             right_vertex = None
@@ -120,88 +123,68 @@ class BuildStartTree:
             right_pol = None
             tree = Tree()
             root = tree.insertVertex(root, node.data, "root", 1)
-            #prev_data_root = root.data
+            stringtype = node.data[1]
+            type_polarity = node.data[2]
             #check the connective of the root and call that connective class
-            # nu pakt hij een type zoals (N/N)\N niet goed, want hij kijkt eerst naar / terwijl hij naar \ moet kijken
-            for index in range(0, len(node.data[1])):
-                
-                inner = re.sub('[()]', '', node.data[1])
-                #print(inner)
-                if node.data[1][index] == "/":
-                    over_obj = Over(node.data[1], node.data[2])
-                    parsen = over_obj.parse_root()
-                    left_vertex = parsen[0]
-                    right_vertex = parsen[1]
+            parser_obj = type_parser.TypeParser()
+            typelist = parser_obj.createList(stringtype)
+            #if there is a connective in the string on which we need to split
+            if(len(typelist) > 1):
+                if(typelist[1] == "/"):
+                    over_obj = Over(type_polarity)
+                    #example typelist of N\N is [N,\,N]
                     pol = over_obj.get_polarity()
                     left_pol = pol[0]
                     right_pol = pol[1]
-                elif node.data[1][index] == "\\":
-                    under_obj = Under(node.data[1], node.data[2])
-                    parsen = under_obj.parse_root()
-                    left_vertex = parsen[0]
-                    right_vertex = parsen[1]
+                elif(typelist[1] == "\\"):
+                    under_obj = Under(type_polarity)
                     pol = under_obj.get_polarity()
                     left_pol = pol[0]
                     right_pol = pol[1]
-                elif node.data[1][index] == "*":
-                    product_obj = Product(node.data[1], node.data[2])
-                    parsen = product_obj.parse_root()
-                    left_vertex = parsen[0]
-                    right_vertex = parsen[1]
+                elif (typelist[1] == "*"):
+                    product_obj = Product(type_polarity)
                     pol = product_obj.get_polarity()
                     left_pol = pol[0]
                     right_pol = pol[1]
-                #else:
-                    #in dit geval is er geen splitsing meer mogelijk, de boom bestaat uit alleen de root
-                    #return node
+
             #add values of seperated root to tree, including their polarity
-            if left_vertex != None and left_pol != None:
-                tree.insertVertex(root, (left_vertex, left_pol), "left", left_pol)
-            if right_vertex != None and right_pol != None:
-                tree.insertVertex(root, (right_vertex, right_pol), "right", right_pol)
-            #print("pauze")
-            #tree.traverseInorder(root)
+            if(len(typelist) > 1):
+                print(typelist)
+                if typelist[0] != None and left_pol != None:
+                    print(typelist[0])
+                    tree.createVertex(typelist[0], left_pol)
+                    #readRoot()
+                    #tree.insertVertex(root, (typelist[0], left_pol), "left", left_pol)
+                if typelist[2] != None and right_pol != None:
+                    tree.createVertex(typelist[2], right_pol)
+                    #tree.insertVertex(root, (typelist[2], right_pol), "right", right_pol)
+            print("pauze")
+            tree.traverseInorder(root)
             node = node.next
             #doe dit alleen als de huidige root anders is dan vorige root
-            axiom_root = self.find_leaf(root)
-            axioma_object = Axioma(axiom_root, axiom_root.polarity)
+            #axiom_root = self.find_leaf(root)
+            #axioma_object = Axioma(axiom_root, axiom_root.polarity)
+
 
 
 class Over:
-    def __init__(self, root, polarity):
+    def __init__(self, polarity):
         '''je wil weten of de root een output polarity heeft of een input polarity. Bij een ingevulde zin hebben de woorden een input polarity, maar de S heeft een output polarity.'''
-        self.root = root
         self.polarity = polarity
-
-    def parse_root(self):
-        '''je weet al dat je een Over connectief gebruikt, dus hieruit moet volgen wat left en right is. Hierbij createEdge aanroepen om de kanten tussen typen te geven.'''
-        #root_tree = Vertex(self.root, self.polarity)
-        split = self.root.split("/")
-        left = split[0]
-        right = split[1]
-        return left, right
 
     def get_polarity(self):
         '''de polariteit van de linker moet input zijn (gevuld rondje), de polariteit van de rechter moet output zijn (leeg rondje). BIJ EEN INPUT POLARITY ROOT.'''
         if self.polarity == 1:
-            left_polarity = 1
-            right_polarity = 0
+            left_pol = 1
+            right_pol = 0
         else:
-            left_polarity = 0
-            right_polarity = 1  
-        return left_polarity, right_polarity
+            left_pol = 0
+            right_pol = 1  
+        return left_pol, right_pol
 
 class Under:
-    def __init__(self, root, polarity):
-        self.root = root
+    def __init__(self, polarity):
         self.polarity = polarity
-
-    def parse_root(self):
-        '''je weet al dat je een Under connectief gebruikt, dus hieruit moet volgen wat left en right is. Hierbij createEdge aanroepen om de kanten tussen typen te geven.'''
-        split = self.root.split("\\")
-        left = split[0]
-        right = split[1]
-        return left, right
 
     def get_polarity(self):
         '''de polariteit van de linker moet output zijn (leeg rondje), de polariteit van de rechter moet input zijn (gevuld rondje). BIJ EEN INPUT POLARITY ROOT.'''
@@ -214,16 +197,8 @@ class Under:
         return left_polarity, right_polarity
 
 class Product:
-    def __init__(self, root, polarity):
-        self.root = root
+    def __init__(self, polarity):
         self.polarity = polarity
-
-    def parse_root(self):
-        '''je weet al dat je een Product connectief gebruikt, dus hieruit moet volgen wat left en right is. Hierbij createEdge aanroepen om de kanten tussen typen te geven.'''
-        split = self.root.split("*")
-        left = split[0]
-        right = split[1]
-        return left, right
 
     def get_polarity(self):
         '''de polariteit van beide dat ze input moeten zijn (gevuld rondje). BIJ EEN INPUT POLARITY ROOT.'''
@@ -237,7 +212,6 @@ class Product:
 
 
 def main():
-    '''parsen string input + print output'''
     #---------------------------------------
     read_sentence = read
     linkedlist = read_sentence.lijst
