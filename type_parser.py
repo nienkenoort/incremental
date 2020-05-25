@@ -1,20 +1,23 @@
 import string
 from pyparsing import Word, Literal, opAssoc, infixNotation
 
-typestring = Word(string.ascii_uppercase)
-under = Literal("\\")
-over = Literal("/")
-tensor = Literal("*")
+class TypeParser:
+       def __init__(self):
+              self.typestring = Word(string.ascii_uppercase)
+              self.under = Literal("\\")
+              self.over = Literal("/")
+              self.tensor = Literal("*")
+       
+       def createList(self, inputtype):
+              typeexpr = infixNotation(self.typestring, [(self.over, 2, opAssoc.RIGHT), (self.under, 2, opAssoc.RIGHT), (self.tensor, 2, opAssoc.RIGHT)],)
+              typelist = typeexpr.parseString(inputtype).asList()[0]
+              return typelist
 
-typeexpr = infixNotation(typestring, [(over, 2, opAssoc.RIGHT), (under, 2, opAssoc.RIGHT), (tensor, 2, opAssoc.RIGHT)],)
+def main():
+    obj = TypeParser()
+    inputtype = "(N \\ S) / NP"
+    typelist = obj.createList(inputtype)
+    #print(typelist)
 
-inputtype = "(N \\ S) / NP"
-typelist = typeexpr.parseString(inputtype).asList()[0]
-
-for element in typelist:
-    if element == '/':
-        print("roep de over methode aan")
-    elif element == '\\':
-        print("roep under methode aan")
-    elif element == '*':
-        print("roep de tensor methode aan")
+if __name__ == '__main__':
+    main()
