@@ -1,6 +1,6 @@
 from input_parser import read
 import lexicon_parser
-#import type_parser
+import type_parser
 
 class Vertex:
     def __init__(self, data, polarity, parent, iLink):
