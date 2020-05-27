@@ -63,10 +63,20 @@ class Tree:
 
 
 class Axioma:
-    def __init__(self, vertex, polarity):
+    def __init__(self, root, tree):
         '''kijken welke axioma's moeten ontstaan vanuit vertex met polarity'''
-        self.vertex = vertex
-        self.polarity = polarity
+        self.tree = tree
+        self.root = root
+
+    def find_leaf(self, root):
+        #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
+        if(root.isLeaf == True):
+            #if the current vertex is also a leaf, then we need to create an axiom with another vertex
+            self.find_vertex(root)
+        else:
+            #if the current vertex is not a leaf and it has children, go to that child
+            self.find_leaf(root.left)
+            self.find_leaf(root.right)
 
     def find_vertex(self, root):
         '''vind een knoop waarmee de input vertex een axioma verbinding mee kan vormen'''
@@ -76,17 +86,17 @@ class Axioma:
                 #als left en right niet None zijn, dan wil je naar de kinderen kijken
                 self.find_vertex(root.left)
                 self.find_vertex(root.right)
-            else:
+            #else:
                 #als de huidige root geen kinderen heeft, dan kan hij gebruikt worden voor het maken van een axiomaverbinding
-                if self.polarity != root.polarity and root.data == vertex.data:
+                #if self.polarity != root.polarity and root.data == vertex.data:
                     #als polarity anders is en type is hetzelfde, dan kan je een verbinding maken
-                    createAxioma(root)
-
+                    #createAxioma(root)
         return root
         #kijk voor deze knoop wat zijn polarity is (vertex.polarity)
         #kijk voor deze knoop wat de inhoud van de knoop is (vertex.data)
     
     def createAxioma(self, root):
+        #kijk voor alle leaves of ze al een verbinding hebben en maak anders een verbinding
         '''het creeren van axioma verbinding tussen vertex en andere knoop.
         ALTIJD VERBINDING MAKEN VAN MET EEN TYPE VAN EEN ANDER WOORD. 
         Begin bij S(output), ga naar een S(input). Als deze S een left tag heeft, kijk naar het woord dat een right tag heeft en vind hierbij een type.
@@ -101,16 +111,6 @@ class BuildStartTree:
     '''build the prooftree of the input sentence, first build tree per word in linked list'''
     def __init__(self, linkedList):
         self.linkedList = linkedList
-
-    def find_leaf(self, root):
-            #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
-            while root.left != None and root.right != None:
-                #zolang root kinderen heeft, ga naar kind
-                print(root.left.data)
-                self.find_leaf(root.left)
-                self.find_leaf(root.right)
-            #print(root.data)
-            return root
         
     def readRoot(self):
         '''read what type is in the root, depending on this, call /,\,*'''
@@ -126,7 +126,9 @@ class BuildStartTree:
             iLink = None
             tree = Tree()
             root = tree.insertVertex(root, node.data, "root", 1, parent, iLink)
-            #check the connective of the root and call that connective class
+            stringtype = node.data[1]
+            type_polarity = node.data[2]
+            check the connective of the root and call that connective class
             parser_obj = type_parser.TypeParser()
             typelist = parser_obj.createList(stringtype)
             #typelist = [[ 'N', '\\', ['N', '/', 'N']], '*', 'S' ]
@@ -134,11 +136,13 @@ class BuildStartTree:
             #type_polarity = 1
             #if there is a connective in the string on which we need to split
             self.build(root, tree, typelist, type_polarity)
-            
-            tree.traverseInorder(root)
+            #tree.traverseInorder(root)
+
+            #op dit punt heb je (als je net begonnen bent) 1 boom gemaakt. Nu wil je dus alvast kijken naar welke mogelijke axioma verbindingen er zijn.
+            axioma_object = Axioma(root, tree)
+            leaf = axioma_object.find_leaf(root)
             node = node.next
             #doe dit alleen als de huidige root anders is dan vorige root
-            #axiom_root = self.find_leaf(root)
             #axioma_object = Axioma(axiom_root, axiom_root.polarity)
 
     def build(self, root, tree, typelist, type_polarity):
@@ -236,6 +240,17 @@ class Product:
 
 
 def main():
+    '''parsen string input + print output'''
+    '''
+    root = None
+    tree = Tree()
+    root = tree.insertVertex(root, "henlo", "left") #insert a root of 10. In my case insert a word 
+    tree.insertVertex(root, "amigo", "right")
+    tree.insertVertex(root, "linkseamigo", "left")
+    tree.traverseInorder(root)
+    print("pauze")
+    tree.removeVertex(root, "amigo") #de node is nu wel verwijderd, maar is nog steeds de rechter node van de root
+    tree.traverseInorder(root)'''
     #---------------------------------------
     read_sentence = read
     linkedlist = read_sentence.lijst
