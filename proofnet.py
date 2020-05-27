@@ -1,32 +1,34 @@
 from input_parser import read
 import lexicon_parser
-import type_parser
+#import type_parser
 
 class Vertex:
-    def __init__(self, data, polarity):
+    def __init__(self, data, polarity, parent, iLink):
         self.data = data #hier is opgeslagen wat de waarde van de knoop is
         self.left = None
         self.right = None
         self.polarity = polarity #dit is de polariteit van de knoop
+        self.isLeaf = False
+        self.parent = parent
+        self.iLink = iLink
 
 class Tree:
-    def createVertex(self, data, polarity):
+    def createVertex(self, data, polarity, parent, iLink):
         '''wanneer er een splitsing is door een connectief, moeten deze gesplitste typen ook weer vertices worden. Deze moeten worden opgeslagen.'''
-        return Vertex(data, polarity)
+        return Vertex(data, polarity, parent, iLink)
 
-    def insertVertex(self, vertex, data, place, polarity):
+    def insertVertex(self, vertex, data, place, polarity, parent, iLink):
         if vertex == None:
-            #print("noen")
             #if root is still empty, create a node
-            return self.createVertex(data, polarity)
-        #print("yeet", vertex.data)
+            return self.createVertex(data, polarity, parent, iLink)
+
         if place == "left":
-            vertex.left = self.insertVertex(vertex.left, data, "left", polarity)
+            vertex.left = self.insertVertex(vertex.left, data, "left", polarity, parent, iLink)
         elif place == "right":
-            vertex.right = self.insertVertex(vertex.right, data, "right", polarity)
+            vertex.right = self.insertVertex(vertex.right, data, "right", polarity, parent, iLink)
         else: #if it is a root element
-            vertex = self.insertVertex(vertex, data, "root", polarity)
-        return vertex, polarity
+            vertex = self.insertVertex(vertex, data, "root", polarity, parent, iLink)
+        return vertex, polarity, parent, iLink
 #MOET NOG EVEN REMOVE FIXEN
     def removeVertex(self, vertex, data):
         '''stel een verkeerde splitsing, dan moet de oude vertex verwijderd worden samen met al zijn kinderen.'''
@@ -120,19 +122,19 @@ class BuildStartTree:
             right_vertex = None
             left_pol = None
             right_pol = None
+            parent = None
+            iLink = None
             tree = Tree()
-            root = tree.insertVertex(root, node.data, "root", 1)
-            stringtype = node.data[1]
-            type_polarity = node.data[2]
+            root = tree.insertVertex(root, node.data, "root", 1, parent, iLink)
             #check the connective of the root and call that connective class
             parser_obj = type_parser.TypeParser()
             typelist = parser_obj.createList(stringtype)
-            #typelist = [ 'N', '\\', ['N', '/', 'N']]
-            #root = tree.insertVertex(root, typelist, "root", 1)
+            #typelist = [[ 'N', '\\', ['N', '/', 'N']], '*', 'S' ]
+            #root = tree.insertVertex(root, typelist, "root", 1, parent, iLink)
             #type_polarity = 1
             #if there is a connective in the string on which we need to split
             self.build(root, tree, typelist, type_polarity)
-            #print("pauze")
+            
             tree.traverseInorder(root)
             node = node.next
             #doe dit alleen als de huidige root anders is dan vorige root
@@ -141,98 +143,106 @@ class BuildStartTree:
 
     def build(self, root, tree, typelist, type_polarity):
         if(len(typelist) > 1): #as long as we can split and build the tree
+            iLink = None #set i-link type to None
             if(typelist[1] == "/"):
                 over_obj = Over(type_polarity)
                 #example typelist of N\N is [N,\,N]
-                pol = over_obj.get_polarity()
+                pol = over_obj.get_polarity_and_iLink()
                 left_pol = pol[0]
                 right_pol = pol[1]
+                iLink = pol[2]
             elif(typelist[1] == "\\"):
                 under_obj = Under(type_polarity)
-                pol = under_obj.get_polarity()
+                pol = under_obj.get_polarity_and_iLink()
                 left_pol = pol[0]
                 right_pol = pol[1]
+                iLink = pol[2]
             elif (typelist[1] == "*"):
                 product_obj = Product(type_polarity)
-                pol = product_obj.get_polarity()
+                pol = product_obj.get_polarity_and_iLink()
                 left_pol = pol[0]
                 right_pol = pol[1]
+                iLink = pol[2]
 
             #add values of seperated root to tree, including their polarity
             if typelist[0] != None and left_pol != None:
-                tree.insertVertex(root, typelist[0], "left", left_pol)
+                tree.insertVertex(root, typelist[0], "left", left_pol, root, iLink)
             if typelist[2] != None and right_pol != None:
-                tree.insertVertex(root, typelist[2], "right", right_pol)
+                tree.insertVertex(root, typelist[2], "right", right_pol, root, iLink)
                 
             #check if we need to split the types any further
             if(len(typelist[0]) > 1 ):
                 self.build(root.left, tree, typelist[0], left_pol)
+            else:
+                root.left.isLeaf = True
+
             if(len(typelist[2]) > 1):
                 self.build(root.right, tree, typelist[2], right_pol)
+            else:
+                root.right.isLeaf = True
+        else:
+            root.isLeaf = True
 
 class Over:
     def __init__(self, polarity):
         '''je wil weten of de root een output polarity heeft of een input polarity. Bij een ingevulde zin hebben de woorden een input polarity, maar de S heeft een output polarity.'''
         self.polarity = polarity
 
-    def get_polarity(self):
-        '''de polariteit van de linker moet input zijn (gevuld rondje), de polariteit van de rechter moet output zijn (leeg rondje). BIJ EEN INPUT POLARITY ROOT.'''
+    def get_polarity_and_iLink(self):
+        '''de polariteit van de linker moet input zijn (gevuld rondje/1), de polariteit van de rechter moet output zijn (leeg rondje). BIJ EEN INPUT POLARITY ROOT.
+        If the root is input, the transition will get an ii-link. Else it will get an i-link.'''
         if self.polarity == 1:
             left_pol = 1
             right_pol = 0
+            iLink = 2
         else:
             left_pol = 0
             right_pol = 1  
-        return left_pol, right_pol
+            iLink = 1
+        return left_pol, right_pol, iLink
+    
 
 class Under:
     def __init__(self, polarity):
         self.polarity = polarity
 
-    def get_polarity(self):
+    def get_polarity_and_iLink(self):
         '''de polariteit van de linker moet output zijn (leeg rondje), de polariteit van de rechter moet input zijn (gevuld rondje). BIJ EEN INPUT POLARITY ROOT.'''
         if self.polarity == 1:
             left_polarity = 0
             right_polarity = 1
+            iLink = 2
         else:
             left_polarity = 1
             right_polarity = 0
-        return left_polarity, right_polarity
+            iLink = 1
+        return left_polarity, right_polarity, iLink
 
 class Product:
     def __init__(self, polarity):
         self.polarity = polarity
 
-    def get_polarity(self):
+    def get_polarity_and_iLink(self):
         '''de polariteit van beide dat ze input moeten zijn (gevuld rondje). BIJ EEN INPUT POLARITY ROOT.'''
         if self.polarity == 1:
             left_polarity = 1
             right_polarity = 1
+            iLink = 1
         else:
             left_polarity = 0
             right_polarity = 0
-        return left_polarity, right_polarity
+            iLink = 2
+        return left_polarity, right_polarity, iLink
 
 
 def main():
-    '''parsen string input + print output'''
-    '''
-    root = None
-    tree = Tree()
-    root = tree.insertVertex(root, "henlo", "left") #insert a root of 10. In my case insert a word 
-    tree.insertVertex(root, "amigo", "right")
-    tree.insertVertex(root, "linkseamigo", "left")
-    tree.traverseInorder(root)
-    print("pauze")
-    tree.removeVertex(root, "amigo") #de node is nu wel verwijderd, maar is nog steeds de rechter node van de root
-    tree.traverseInorder(root)'''
     #---------------------------------------
     read_sentence = read
     linkedlist = read_sentence.lijst
     obj = BuildStartTree(linkedlist)
     read_root = obj.readRoot()
     #-------------------------------------
-    vertex_obj = Vertex("hoi", 1)
+    vertex_obj = Vertex("hoi", 1, None, None)
     ax_obj = Axioma(vertex_obj, vertex_obj.polarity)
     create = ax_obj.find_vertex(vertex_obj)
 
