@@ -1,4 +1,3 @@
-import re
 from input_parser import read
 import lexicon_parser
 import type_parser
