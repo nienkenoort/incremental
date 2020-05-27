@@ -17,9 +17,10 @@ class Tree:
 
     def insertVertex(self, vertex, data, place, polarity):
         if vertex == None:
+            #print("noen")
             #if root is still empty, create a node
             return self.createVertex(data, polarity)
-
+        #print("yeet", vertex.data)
         if place == "left":
             vertex.left = self.insertVertex(vertex.left, data, "left", polarity)
         elif place == "right":
@@ -115,7 +116,6 @@ class BuildStartTree:
         linkedList = self.linkedList
         node = linkedList.root
         while node:
-            print(node.data)
             root = None
             left_vertex = None
             right_vertex = None
@@ -128,44 +128,48 @@ class BuildStartTree:
             #check the connective of the root and call that connective class
             parser_obj = type_parser.TypeParser()
             typelist = parser_obj.createList(stringtype)
+            #typelist = [ 'N', '\\', ['N', '/', 'N']]
+            #root = tree.insertVertex(root, typelist, "root", 1)
+            #type_polarity = 1
             #if there is a connective in the string on which we need to split
-            if(len(typelist) > 1):
-                if(typelist[1] == "/"):
-                    over_obj = Over(type_polarity)
-                    #example typelist of N\N is [N,\,N]
-                    pol = over_obj.get_polarity()
-                    left_pol = pol[0]
-                    right_pol = pol[1]
-                elif(typelist[1] == "\\"):
-                    under_obj = Under(type_polarity)
-                    pol = under_obj.get_polarity()
-                    left_pol = pol[0]
-                    right_pol = pol[1]
-                elif (typelist[1] == "*"):
-                    product_obj = Product(type_polarity)
-                    pol = product_obj.get_polarity()
-                    left_pol = pol[0]
-                    right_pol = pol[1]
-
-            #add values of seperated root to tree, including their polarity
-            if(len(typelist) > 1):
-                print(typelist)
-                if typelist[0] != None and left_pol != None:
-                    print(typelist[0])
-                    tree.createVertex(typelist[0], left_pol)
-                    #readRoot()
-                    #tree.insertVertex(root, (typelist[0], left_pol), "left", left_pol)
-                if typelist[2] != None and right_pol != None:
-                    tree.createVertex(typelist[2], right_pol)
-                    #tree.insertVertex(root, (typelist[2], right_pol), "right", right_pol)
-            print("pauze")
+            self.build(root, tree, typelist, type_polarity)
+            #print("pauze")
             tree.traverseInorder(root)
             node = node.next
             #doe dit alleen als de huidige root anders is dan vorige root
             #axiom_root = self.find_leaf(root)
             #axioma_object = Axioma(axiom_root, axiom_root.polarity)
 
+    def build(self, root, tree, typelist, type_polarity):
+        if(len(typelist) > 1): #as long as we can split and build the tree
+            if(typelist[1] == "/"):
+                over_obj = Over(type_polarity)
+                #example typelist of N\N is [N,\,N]
+                pol = over_obj.get_polarity()
+                left_pol = pol[0]
+                right_pol = pol[1]
+            elif(typelist[1] == "\\"):
+                under_obj = Under(type_polarity)
+                pol = under_obj.get_polarity()
+                left_pol = pol[0]
+                right_pol = pol[1]
+            elif (typelist[1] == "*"):
+                product_obj = Product(type_polarity)
+                pol = product_obj.get_polarity()
+                left_pol = pol[0]
+                right_pol = pol[1]
 
+            #add values of seperated root to tree, including their polarity
+            if typelist[0] != None and left_pol != None:
+                tree.insertVertex(root, typelist[0], "left", left_pol)
+            if typelist[2] != None and right_pol != None:
+                tree.insertVertex(root, typelist[2], "right", right_pol)
+                
+            #check if we need to split the types any further
+            if(len(typelist[0]) > 1 ):
+                self.build(root.left, tree, typelist[0], left_pol)
+            if(len(typelist[2]) > 1):
+                self.build(root.right, tree, typelist[2], right_pol)
 
 class Over:
     def __init__(self, polarity):
@@ -212,6 +216,17 @@ class Product:
 
 
 def main():
+    '''parsen string input + print output'''
+    '''
+    root = None
+    tree = Tree()
+    root = tree.insertVertex(root, "henlo", "left") #insert a root of 10. In my case insert a word 
+    tree.insertVertex(root, "amigo", "right")
+    tree.insertVertex(root, "linkseamigo", "left")
+    tree.traverseInorder(root)
+    print("pauze")
+    tree.removeVertex(root, "amigo") #de node is nu wel verwijderd, maar is nog steeds de rechter node van de root
+    tree.traverseInorder(root)'''
     #---------------------------------------
     read_sentence = read
     linkedlist = read_sentence.lijst
