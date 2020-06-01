@@ -312,15 +312,45 @@ class Axioma:
             #als de verbinding is gemaakt dan wil je kijken of de verbinding uberhaupt mogelijk is
             #dit checken gaat telkens vanuit de output naar input polariteit, dus kijk eerst welke kant de axioma verbinding op loopt
             if(root.polarity == 0):
-                self.checkForCycle(root)
+                self.checkForCycle(root, vertex)
             else:
-                self.checkForCycle(vertex)
+                self.checkForCycle(vertex, root)
     
-    def checkForCycle(self, root):
+    def checkForCycle(self, rootOutput, rootInput):
         '''Check if there are any cycles that do not go through an i-link by adding the new axiom'''
         #ga eerst vanuit de root via de axioma verbinding naar de andere knoop.
         #check eerst de verbinding van de buur die het dichtst bij is en kijk of dit via de axioma verbinding weer terecht komt in de 'root'
         #ga langzaam aan steeds meer naar beneden in de boom van de axioma verbinding knoop.
+
+        #als er een directed path van de output node naar de input node is, voordar de verbinding is gemaakt, dan zal er een cykel ontstaan.
+        #begin bij de input node, als je door de verbindingen te volgen bij de output node terecht komt dan is er een cykel aanwezig
+
+        #first look at the closest neighbour of the input node, go further into the tree if we do not reach the output node
+        if(rootInput.parent != None):
+            if(rootInput.parent.left != rootInput):
+                if(rootInput.parent.left.axiom != None):
+                    goToNode = rootInput.parent.left.axiom
+            elif(rootInput.parent.right != rootInput):
+                if(rootInput.parent.right.axiom != None):
+                    goToNode = rootInput.parent.right.axiom
+            else:
+                self.checkForCycle(rootOutput, rootInput.parent)
+
+            if(goToNode.parent.right != goToNode):
+                #kijk of de dichtsbijzijnde buur van de node toevallig de node is die we zoeken voor een cykel
+                if(goToNode.parent.right == rootOutput):
+                    print("er is een cykel aanwezig")
+                else:
+                    self.checkForCycle(rootOutput, goToNode.parent)
+            elif(goToNode.parent.left != goToNode):
+                if(goToNode.parent.left == rootOutput):
+                    print("er is een cykel gevonden")
+                else:
+                    self.checkForCycle(rootOutput, goToNode.parent)
+            else:
+                self.checkForCycle(rootOutput, goToNode.parent)
+        else:
+            print("een cykel is niet mogelijk, dus de axioma verbinding mag blijven")
     
     def removeAxioma(self, type1, type2):
         '''verwijderen axioma tussen type1 en type2'''
@@ -465,11 +495,15 @@ class Product:
 
 
 def main():
+    #---------------------------------------
     read_sentence = read
     linkedlist = read_sentence.lijst
     obj = BuildStartTree(linkedlist)
     read_root = obj.readRoot()
-
+    #-------------------------------------
+    #vertex_obj = Vertex("hoi", 1, None, None)
+    #ax_obj = Axioma(vertex_obj, vertex_obj.polarity)
+    #create = ax_obj.find_vertex(vertex_obj)
 
 if __name__ == '__main__':
     main()
