@@ -12,6 +12,7 @@ class Vertex:
         self.parent = parent
         self.iLink = iLink
         self.visited = False
+        self.axiom = None
 
 class Tree:
     def createVertex(self, data, polarity, parent, iLink):
@@ -64,69 +65,120 @@ class Tree:
 
 
 class Axioma:
-    def __init__(self, root, tree):
+    def __init__(self, root, tree, passedTrees):
         '''kijken welke axioma's moeten ontstaan vanuit vertex met polarity'''
         self.tree = tree
         self.root = root
+        self.passedTrees = passedTrees
 
     def find_leaf(self, root):
         #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
-        if(root.isLeaf == True):
+        if(root.isLeaf == True and root.axiom == None):
             #if the current vertex is also a leaf, then we need to create an axiom with another vertex
             self.find_vertex(root)
         else:
             #if the current vertex is not a leaf and it has children, go to that child
-            self.find_leaf(root.left)
-            self.find_leaf(root.right)
+            if(root.left != None and root.right != None):
+                self.find_leaf(root.left)
+                self.find_leaf(root.right)
+    
+    def find_leafOtherTree(self, root, rootOtherTree):
+        #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
+        if(root.isLeaf == True and root.axiom == None):
+            #if the current vertex is also a leaf, then we need to create an axiom with another vertex
+            if(rootOtherTree.left != None and rootOtherTree != None):
+                mostRightLeaf = self.find_mostRightLeaf(root, rootOtherTree)
+                self.toFalse(root)
+                if(mostRightLeaf != None):
+                    self.createAxioma(root, mostRightLeaf)
+                else: 
+                    #als er geen axiomaverbinding gemaakt kan worden in de huidige boom, dan moet je kijken naar andere bomen
+                    return None
+
+            else:
+                #if the other tree exists of only a single node, we need to check if that node can be connected
+                if(rootOtherTree.data == root.data and rootOtherTree.polarity != root.polarity):
+                    self.createAxioma(root, rootOtherTree)
+                else:
+                    return None
+        else:
+            #if the current vertex is not a leaf and it has children, go to that child
+            if(root.left != None and root.right != None):
+                self.find_leafOtherTree(root.left)
+                self.find_leafOtherTree(root.right)
 
     def find_vertex(self, root):
         '''vind een knoop waarmee de input vertex een axioma verbinding mee kan vormen
         First look in the tree in which the current node appears as well. If an axiom connection cannot be made, continue to the closest neighbour trees.'''
-        #kijk eerst naar het andere kind van de parent
-        #als de huidige knoop het rechterkind is, kijk naar links. Anders kijk naar rechts
-        if(root.parent.left != root):
-            if(root.parent.left.isLeaf == True):
-                if(root.data == root.parent.left.data and root.polarity != root.parent.left.polarity):
-                    print("hier kan een mogelijke axioma verbinding ontstaan")
-                    createAxioma(root, root.parent.left)
+        #je geeft altijd de root mee, dus als de root geen linker- en rechterkind heeft, dan bestaat de boom uit alleen maar de root en wil je sowieso een axioma 
+        # verbinding met een andere boom uitvoeren
+        if(self.root.right != None and self.root.left != None):
+            #kijk eerst naar het andere kind van de parent
+            #als de huidige knoop het rechterkind is, kijk naar links. Anders kijk naar rechts
+            if(root.parent.left != root):
+                if(root.parent.left.isLeaf == True):
+                    if(root.data == root.parent.left.data and root.polarity != root.parent.left.polarity):
+                        #print(root.data , root.polarity , root.parent.left.data , root.parent.left.polarity)
+                        self.createAxioma(root, root.parent.left)
+                    else:
+                        root.visited = True
+                        mostRightLeaf = self.find_mostRightLeaf(root, root.parent.left)
+                        self.toFalse(root)
+                        if(mostRightLeaf != None):
+                            self.createAxioma(root, mostRightLeaf)
+                        else: 
+                            #als er geen axiomaverbinding gemaakt kan worden in de huidige boom, dan moet je kijken naar andere bomen
+                            self.findOtherTree(root)
                 else:
+                    #hier ga je kijken naar de linkerbuur, en is de root dus de rechterbuur van de parent. 
+                    # Dus de leaves die het dichtst bij de huidige root zitten, zitten rechts van de linkerbuur van de parent.
+                    #Dus kijk eerst naar rechts van root.parent.left
                     root.visited = True
                     mostRightLeaf = self.find_mostRightLeaf(root, root.parent.left)
-                    self.toFalse(root)
+                    #hier moet je alle visits weer op false zetten
                     if(mostRightLeaf != None):
-                        createAxioma(root, mostRightLeaf)
-            else:
-                #hier ga je kijken naar de linkerbuur, en is de root dus de rechterbuur van de parent. 
-                # Dus de leaves die het dichtst bij de huidige root zitten, zitten rechts van de linkerbuur van de parent.
-                #Dus kijk eerst naar rechts van root.parent.left
-                root.visited = True
-                mostRightLeaf = self.find_mostRightLeaf(root, root.parent.left)
-                #hier moet je alle visits weer op false zetten
-                if(mostRightLeaf != None):
-                    createAxioma(root, mostRightLeaf)
-                print("hier moet ik de hele linkerboom langs gaan om te kijken naar alle leaves --> recursief zodat je telkens dezelfde methode kan gebruiken bij een complex type?")
-                #kijk telkens per leaf of hij verbonden kan worden met de root
-        else: #if root.parent.right != root
-            if(root.parent.right.isLeaf == True):
-                if(root.data == root.parent.right.data and root.polarity != root.parent.right.polarity):
-                    print("hier kan weer een mogelijke axioma verbinding ontstaan")
-                    createAxioma(root, root.parent.right)
+                        self.createAxioma(root, mostRightLeaf)
+                    else: 
+                        #als er geen axiomaverbinding gemaakt kan worden in de huidige boom, dan moet je kijken naar andere bomen
+                        self.findOtherTree(root)
+                    #kijk telkens per leaf of hij verbonden kan worden met de root
+            else: #if root.parent.right != root
+                if(root.parent.right.isLeaf == True):
+                    if(root.data == root.parent.right.data and root.polarity != root.parent.right.polarity):
+                        #print(root.data , root.polarity , root.parent.right.data , root.parent.right.polarity)
+                        self.createAxioma(root, root.parent.right)
+                    else:
+                        root.visited = True
+                        mostLeftLeaf = self.find_mostLeftLeaf(root, root.parent.right)
+                        self.toFalse(root)
+                        if(mostLeftLeaf != None):
+                            self.createAxioma(root, mostLeftLeaf)
+                        else: 
+                            #als er geen axiomaverbinding gemaakt kan worden in de huidige boom, dan moet je kijken naar andere bomen
+                            self.findOtherTree(root)
                 else:
                     root.visited = True
-                    print("uitvoeren most left")
                     mostLeftLeaf = self.find_mostLeftLeaf(root, root.parent.right)
                     self.toFalse(root)
                     if(mostLeftLeaf != None):
-                        createAxioma(root, mostLeftLeaf)
-            else:
-                root.visited = True
-                print("uitvoeren most left")
-                mostLeftLeaf = self.find_mostLeftLeaf(root, root.parent.right)
-                self.toFalse(root)
-                if(mostLeftLeaf != None):
-                        createAxioma(root, mostLeftLeaf)
-                print("hier moet je de hele rechterboom langs gaan voor een mogelijke verbinding.")
+                        self.createAxioma(root, mostLeftLeaf)
+                    else: 
+                        #als er geen axiomaverbinding gemaakt kan worden in de huidige boom, dan moet je kijken naar andere bomen
+                        self.findOtherTree(root)
+        else: 
+            #als er geen verbinding binnen de eigen boom kan worden gemaakt, dan moet dat met een andere boom gebeuren.
+            #print(self.root.data,"connect with other tree")
+            self.findOtherTree(root)
+
         #hierna kijk via linkedlist naar de andere bomen in het bewijsnet om een connectie te maken.
+    def findOtherTree(self, root):
+        for rootPassed, treePassed in self.passedTrees:
+            #check for each tree that we already constructed if there is an axiom connection possible
+            if(self.root != rootPassed):
+                #if the root of the current tree is not the same as the root of the tree that we want to connect, 
+                # then we can try to find leaves to connect in that tree
+                print(self.root.data , rootPassed.data)
+                self.find_leafOtherTree(root, rootPassed)
     
     def find_mostRightLeaf(self, vertexOut, vertexIn):
         '''If the vertex we want to connect is closest to the right side of the neighbour tree.'''
@@ -138,7 +190,6 @@ class Axioma:
                 return None
         if(vertexIn.isLeaf == True):
             if(vertexIn.data == vertexOut.data and vertexIn.polarity != vertexOut.polarity):
-                print("connect both vertices")
                 return vertexIn
             else:
                 vertexIn.visited = True
@@ -167,8 +218,10 @@ class Axioma:
             else:
                 if(vertexIn.right.visited == True):
                     return self.find_mostRightLeaf(vertexOut, vertexIn.left)
-                else:
+                elif(vertexIn.left.visited == True):
                     return self.find_mostRightLeaf(vertexOut, vertexIn.right) 
+                else:
+                    return None
     
     def find_mostLeftLeaf(self, vertexOut, vertexIn):
         '''If the vertex we want to connect is closest to the left side of the neighbour tree.'''
@@ -176,14 +229,12 @@ class Axioma:
         if(vertexIn.visited == True):
             #probleem want vertexIn.parent kan ook None zijn 
             if(vertexIn.parent != None):
-                print(vertexIn.parent.data , "parent")
                 return self.find_mostLeftLeaf(vertexOut, vertexIn.parent) 
             else:
                 #if the parents of the current vertex are visited already, we assume that we have visited all vertices
                 return None
         elif(vertexIn.isLeaf == True):
             if(vertexIn.data == vertexOut.data and vertexIn.polarity != vertexOut.polarity):
-                print("connect both vertices")
                 return vertexIn
             else:
                 vertexIn.visited = True
@@ -210,7 +261,6 @@ class Axioma:
                 else:
                     return None
             else:
-                print(vertexIn.left.data , "vertex left")
                 if(vertexIn.left.visited == True):
                     return self.find_mostLeftLeaf(vertexOut, vertexIn.right)
                 elif(vertexIn.right.visited == True):
@@ -245,24 +295,38 @@ class Axioma:
         else:
             if(root.parent != None):
                 self.toFalse(root.parent)
-
-        
     
     def createAxioma(self, root, vertex):
         #kijk voor alle leaves of ze al een verbinding hebben en maak anders een verbinding
         '''het creeren van axioma verbinding tussen vertex en andere knoop.
-        ALTIJD VERBINDING MAKEN VAN MET EEN TYPE VAN EEN ANDER WOORD. 
         Begin bij S(output), ga naar een S(input). Als deze S een left tag heeft, kijk naar het woord dat een right tag heeft en vind hierbij een type.
         Als het woord een right tag heeft, ga naar de left tag en vind hierbij een type.
         Doe opnieuw, totdat elke paren van typen verbonden zijn.
         Als er typen over blijven die nog geen verbinding hebben, sla deze op.'''
-        print("een axioma verbinding is gemaakt")
+        #eerst kijken of de verbinding al bestaat, dan pas een nieuwe axioma verbinding maken
+        if((root.axiom != vertex or vertex.axiom != root) and (root.axiom == None and vertex.axiom == None)):
+            #if an axiom connection already exists between these vertices, we do not make another connection
+            root.axiom = vertex
+            vertex.axiom = root
+            print("een axioma verbinding is gemaakt ", root.data ,root.polarity, vertex.data, vertex.polarity )
+            #als de verbinding is gemaakt dan wil je kijken of de verbinding uberhaupt mogelijk is
+            #dit checken gaat telkens vanuit de output naar input polariteit, dus kijk eerst welke kant de axioma verbinding op loopt
+            if(root.polarity == 0):
+                self.checkForCycle(root)
+            else:
+                self.checkForCycle(vertex)
     
     def checkForCycle(self, root):
         '''Check if there are any cycles that do not go through an i-link by adding the new axiom'''
+        #ga eerst vanuit de root via de axioma verbinding naar de andere knoop.
+        #check eerst de verbinding van de buur die het dichtst bij is en kijk of dit via de axioma verbinding weer terecht komt in de 'root'
+        #ga langzaam aan steeds meer naar beneden in de boom van de axioma verbinding knoop.
     
     def removeAxioma(self, type1, type2):
         '''verwijderen axioma tussen type1 en type2'''
+        if(type1.axiom == type2 or type2.axiom != type1):
+            type1.axiom = None
+            type2.axiom = None
 
 class BuildStartTree:
     '''build the prooftree of the input sentence, first build tree per word in linked list'''
@@ -273,6 +337,7 @@ class BuildStartTree:
         '''read what type is in the root, depending on this, call /,\,*'''
         linkedList = self.linkedList
         node = linkedList.root
+        passedTrees = []
         while node:
             root = None
             left_vertex = None
@@ -285,19 +350,21 @@ class BuildStartTree:
             root = tree.insertVertex(root, node.data, "root", 1, parent, iLink)
             stringtype = node.data[1]
             type_polarity = node.data[2]
-            check the connective of the root and call that connective class
+            #check the connective of the root and call that connective class
             parser_obj = type_parser.TypeParser()
-            #typelist = parser_obj.createList(stringtype)
+            typelist = parser_obj.createList(stringtype)
             #typelist = ['N', '/', [ ['S', '\\', 'N'], '\\', ['N', '\\', 'S']]]
             #typelist = [[ 'N', '\\', ['N', '/', 'N']], '*', 'S' ]
+            #typelist = ['N']
             #root = tree.insertVertex(root, typelist, "root", 1, parent, iLink)
             #type_polarity = 1
             #if there is a connective in the string on which we need to split
             self.build(root, tree, typelist, type_polarity)
             #tree.traverseInorder(root)
 
+            passedTrees.append([root, tree])
             #op dit punt heb je (als je net begonnen bent) 1 boom gemaakt. Nu wil je dus alvast kijken naar welke mogelijke axioma verbindingen er zijn.
-            axioma_object = Axioma(root, tree)
+            axioma_object = Axioma(root, tree, passedTrees)
             leaf = axioma_object.find_leaf(root)
             node = node.next
             #doe dit alleen als de huidige root anders is dan vorige root
@@ -398,12 +465,11 @@ class Product:
 
 
 def main():
-    '''parsen string input + print output'''
-    #---------------------------------------
     read_sentence = read
     linkedlist = read_sentence.lijst
     obj = BuildStartTree(linkedlist)
     read_root = obj.readRoot()
+
 
 if __name__ == '__main__':
     main()
