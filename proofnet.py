@@ -336,8 +336,7 @@ class Axioma:
         #first look at the closest neighbour of the input node, go further into the tree if we do not reach the output node
         if(rootInput.iLink == 1):
             self.iLinkPassed = True
-            #if we have passed an i-link, we know that the cycle is legit and that we can stop searching???
-            self.cycleFound = False
+            #if we have passed an i-link, we turn the value of iLinkPassed to True, so we can check for it later
         if(rootInput == rootOutput):
             #if we have found the vertex that is the same as the output vertex, we know there is a cycle
             print("er is een cykel")
