@@ -1,6 +1,6 @@
 from input_parser import read
 import lexicon_parser
-import type_parser
+#import type_parser
 
 class Vertex:
     def __init__(self, data, polarity, parent, iLink):
@@ -70,6 +70,8 @@ class Axioma:
         self.tree = tree
         self.root = root
         self.passedTrees = passedTrees
+        self.cycleFound = False
+        self.iLinkPassed = False
 
     def find_leaf(self, root):
         #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
@@ -221,7 +223,8 @@ class Axioma:
                 elif(vertexIn.left.visited == True):
                     return self.find_mostRightLeaf(vertexOut, vertexIn.right) 
                 else:
-                    return None
+                    #if both are not visited yet, we choose the most right vertex
+                    return self.find_mostRightLeaf(vertexOut, vertexIn.right)
     
     def find_mostLeftLeaf(self, vertexOut, vertexIn):
         '''If the vertex we want to connect is closest to the left side of the neighbour tree.'''
@@ -266,7 +269,8 @@ class Axioma:
                 elif(vertexIn.right.visited == True):
                     return self.find_mostLeftLeaf(vertexOut, vertexIn.left) 
                 else:
-                    return None
+                    #if both are not visited yet, we choose the most left vertex
+                    return self.find_mostLeftLeaf(vertexOut, vertexIn.left)
 
     def toFalse(self, root):
         '''After trying to find an axiom connection for one leaf, we want to put back all vertex.visited values to false.'''
@@ -315,6 +319,10 @@ class Axioma:
                 self.checkForCycle(root, vertex)
             else:
                 self.checkForCycle(vertex, root)
+        
+        if(self.cycleFound == True and self.iLinkPassed == False):
+            #in this case there is a cycle and we want to get rid of the last axiom made
+            self.removeAxioma(root, vertex)
     
     def checkForCycle(self, rootOutput, rootInput):
         '''Check if there are any cycles that do not go through an i-link by adding the new axiom'''
@@ -326,31 +334,61 @@ class Axioma:
         #begin bij de input node, als je door de verbindingen te volgen bij de output node terecht komt dan is er een cykel aanwezig
 
         #first look at the closest neighbour of the input node, go further into the tree if we do not reach the output node
+        if(rootInput.iLink == 1):
+            self.iLinkPassed = True
+            #if we have passed an i-link, we know that the cycle is legit and that we can stop searching???
+            self.cycleFound = False
+        if(rootInput == rootOutput):
+            #if we have found the vertex that is the same as the output vertex, we know there is a cycle
+            print("er is een cykel")
+            self.cycleFound = True
+            return self.cycleFound
         if(rootInput.parent != None):
             if(rootInput.parent.left != rootInput):
-                if(rootInput.parent.left.axiom != None):
-                    goToNode = rootInput.parent.left.axiom
+                if(rootInput.parent.left.isLeaf == True):
+                    if(rootInput.parent.left.axiom != None):
+                        goToNode = rootInput.parent.left.axiom
+                    else:
+                        return self.checkForCycle(rootOutput, rootInput.parent)
+                else:
+                    #if the current vertex is not a leaf, we want to go to the leaves
+                    return self.checkForCycle(rootOutput, rootInput.parent.left.left)
+                    return self.checkForCycle(rootOutput, rootInput.parent.left.right)
             elif(rootInput.parent.right != rootInput):
-                if(rootInput.parent.right.axiom != None):
-                    goToNode = rootInput.parent.right.axiom
+                if(rootInput.parent.right.isLeaf == True):
+                    if(rootInput.parent.right.axiom != None):
+                        goToNode = rootInput.parent.right.axiom
+                    else:
+                        return self.checkForCycle(rootOutput, rootInput.parent)
+                else:
+                    #if the current vertex is not a leaf, we want to go to the leaves
+                    return self.checkForCycle(rootOutput, rootInput.parent.right.left)
+                    if(self.cycleFound == False):
+                        return self.checkForCycle(rootOutput, rootInput.parent.right.right)
             else:
-                self.checkForCycle(rootOutput, rootInput.parent)
+                return self.checkForCycle(rootOutput, rootInput.parent)
 
             if(goToNode.parent.right != goToNode):
                 #kijk of de dichtsbijzijnde buur van de node toevallig de node is die we zoeken voor een cykel
                 if(goToNode.parent.right == rootOutput):
+                    #nog checken of hij langs een i-link gaat!
                     print("er is een cykel aanwezig")
+                    self.cycleFound = True
+                    return self.cycleFound
                 else:
-                    self.checkForCycle(rootOutput, goToNode.parent)
+                    return self.checkForCycle(rootOutput, goToNode.parent)
             elif(goToNode.parent.left != goToNode):
                 if(goToNode.parent.left == rootOutput):
                     print("er is een cykel gevonden")
+                    self.cycleFound = True
+                    return self.cycleFound
                 else:
-                    self.checkForCycle(rootOutput, goToNode.parent)
+                    return self.checkForCycle(rootOutput, goToNode.parent)
             else:
-                self.checkForCycle(rootOutput, goToNode.parent)
+                return self.checkForCycle(rootOutput, goToNode.parent)
         else:
             print("een cykel is niet mogelijk, dus de axioma verbinding mag blijven")
+            return self.cycleFound
     
     def removeAxioma(self, type1, type2):
         '''verwijderen axioma tussen type1 en type2'''
@@ -377,17 +415,17 @@ class BuildStartTree:
             parent = None
             iLink = None
             tree = Tree()
-            root = tree.insertVertex(root, node.data, "root", 1, parent, iLink)
+            #root = tree.insertVertex(root, node.data, "root", 1, parent, iLink)
             stringtype = node.data[1]
             type_polarity = node.data[2]
             #check the connective of the root and call that connective class
-            parser_obj = type_parser.TypeParser()
-            typelist = parser_obj.createList(stringtype)
-            #typelist = ['N', '/', [ ['S', '\\', 'N'], '\\', ['N', '\\', 'S']]]
+            #parser_obj = type_parser.TypeParser()
+            #typelist = parser_obj.createList(stringtype)
+            typelist = [[ ['N', '\\', 'S'], '\\', ['N', '\\', 'S']], '/', 'N']
             #typelist = [[ 'N', '\\', ['N', '/', 'N']], '*', 'S' ]
             #typelist = ['N']
-            #root = tree.insertVertex(root, typelist, "root", 1, parent, iLink)
-            #type_polarity = 1
+            root = tree.insertVertex(root, typelist, "root", 1, parent, iLink)
+            type_polarity = 1
             #if there is a connective in the string on which we need to split
             self.build(root, tree, typelist, type_polarity)
             #tree.traverseInorder(root)
