@@ -1,6 +1,6 @@
 from input_parser import read
 import lexicon_parser
-#import type_parser
+import type_parser
 
 class Vertex:
     def __init__(self, data, polarity, parent, iLink):
@@ -323,20 +323,19 @@ class Axioma:
         if(self.cycleFound == True and self.iLinkPassed == False):
             #in this case there is a cycle and we want to get rid of the last axiom made
             self.removeAxioma(root, vertex)
+
+        #maar ook nog checken of er geen kruizen zijn!! Sinds de laatst gemaakte verbinding. Dus kijken of de huidige verbinding kruist met andere axioma's die al bestaan.
+        #kijken voor alles binnen de axioma of zij nog een verbinding meoten krijgen
     
     def checkForCycle(self, rootOutput, rootInput):
         '''Check if there are any cycles that do not go through an i-link by adding the new axiom'''
-        #ga eerst vanuit de root via de axioma verbinding naar de andere knoop.
-        #check eerst de verbinding van de buur die het dichtst bij is en kijk of dit via de axioma verbinding weer terecht komt in de 'root'
-        #ga langzaam aan steeds meer naar beneden in de boom van de axioma verbinding knoop.
-
         #als er een directed path van de output node naar de input node is, voordar de verbinding is gemaakt, dan zal er een cykel ontstaan.
         #begin bij de input node, als je door de verbindingen te volgen bij de output node terecht komt dan is er een cykel aanwezig
 
         #first look at the closest neighbour of the input node, go further into the tree if we do not reach the output node
         if(rootInput.iLink == 1):
             self.iLinkPassed = True
-            #if we have passed an i-link, we turn the value of iLinkPassed to True, so we can check for it later
+            #if we have passed an i-link, we know that the cycle is legit and that we can stop searching???
         if(rootInput == rootOutput):
             #if we have found the vertex that is the same as the output vertex, we know there is a cycle
             print("er is een cykel")
@@ -414,17 +413,12 @@ class BuildStartTree:
             parent = None
             iLink = None
             tree = Tree()
-            #root = tree.insertVertex(root, node.data, "root", 1, parent, iLink)
+            root = tree.insertVertex(root, node.data, "root", 1, parent, iLink)
             stringtype = node.data[1]
             type_polarity = node.data[2]
             #check the connective of the root and call that connective class
-            #parser_obj = type_parser.TypeParser()
-            #typelist = parser_obj.createList(stringtype)
-            typelist = [[ ['N', '\\', 'S'], '\\', ['N', '\\', 'S']], '/', 'N']
-            #typelist = [[ 'N', '\\', ['N', '/', 'N']], '*', 'S' ]
-            #typelist = ['N']
-            root = tree.insertVertex(root, typelist, "root", 1, parent, iLink)
-            type_polarity = 1
+            parser_obj = type_parser.TypeParser()
+            typelist = parser_obj.createList(stringtype)
             #if there is a connective in the string on which we need to split
             self.build(root, tree, typelist, type_polarity)
             #tree.traverseInorder(root)
@@ -532,15 +526,10 @@ class Product:
 
 
 def main():
-    #---------------------------------------
     read_sentence = read
     linkedlist = read_sentence.lijst
     obj = BuildStartTree(linkedlist)
     read_root = obj.readRoot()
-    #-------------------------------------
-    #vertex_obj = Vertex("hoi", 1, None, None)
-    #ax_obj = Axioma(vertex_obj, vertex_obj.polarity)
-    #create = ax_obj.find_vertex(vertex_obj)
 
 if __name__ == '__main__':
     main()
