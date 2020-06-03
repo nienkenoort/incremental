@@ -13,8 +13,8 @@ class Input:
     def parser(self):
         linkedList = linkedlist.LinkedList() #create an empty linked list
         #let 0 be an output polarity and 1 be an input polarity
-        linkedList.add((None, "S", 0)) #add sentence type to list
         sentence_list = self.sentence.split()
+        sentence_list.reverse()
         #kijk voor elk woord in de zin welk type erbij hoort
         lexicon_obj = lexicon_parser.Lexicon()
         lexicon_obj.createLexicon()
@@ -26,7 +26,7 @@ class Input:
                 else:
                     #print(sentence_word + 'does not appear as real word')
                     None #moet dit nog even aanpassen want anders pakt hij ook niet bestaande woorden?
-
+        linkedList.add((None, "S", 0)) #add sentence type to list
         node = linkedList.root
         #print node.data
         while node:
