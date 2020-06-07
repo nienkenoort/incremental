@@ -13,6 +13,7 @@ class Vertex:
         self.iLink = iLink
         self.visited = False
         self.axiom = None
+        self.axiomRemoved = [] #so that we will not try to make the same axioms that cannot be made over and over again.
 
 class Tree:
     def createVertex(self, data, polarity, parent, iLink):
@@ -77,7 +78,8 @@ class Axioma:
         #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
         if(root.isLeaf == True and root.axiom == None):
             #if the current vertex is also a leaf, then we need to create an axiom with another vertex
-            self.find_vertex(root)
+            #self.find_vertex(root)
+            self.findOtherTree(root)
         else:
             #if the current vertex is not a leaf and it has children, go to that child
             if(root.left != None and root.right != None):
@@ -89,6 +91,8 @@ class Axioma:
         if(root.isLeaf == True and root.axiom == None):
             #if the current vertex is also a leaf, then we need to create an axiom with another vertex
             if(rootOtherTree.left != None and rootOtherTree != None):
+                #you always look at the trees on the left of the current tree, so we want to connect the most right leaves first.
+                #set root to visited?? Of hoeft dat niet omdat we in een andere boom aan het werken zijn aha
                 mostRightLeaf = self.find_mostRightLeaf(root, rootOtherTree)
                 self.toFalse(root)
                 if(mostRightLeaf != None):
@@ -96,7 +100,6 @@ class Axioma:
                 else: 
                     #als er geen axiomaverbinding gemaakt kan worden in de huidige boom, dan moet je kijken naar andere bomen
                     return None
-
             else:
                 #if the other tree exists of only a single node, we need to check if that node can be connected
                 if(rootOtherTree.data == root.data and rootOtherTree.polarity != root.polarity):
@@ -111,9 +114,11 @@ class Axioma:
 
     def find_vertex(self, root):
         '''vind een knoop waarmee de input vertex een axioma verbinding mee kan vormen
-        First look in the tree in which the current node appears as well. If an axiom connection cannot be made, continue to the closest neighbour trees.'''
+        First look in the closest neighbour trees. If an axiom connection cannot be made, continue to the tree in which the current node appears as well.'''
         #je geeft altijd de root mee, dus als de root geen linker- en rechterkind heeft, dan bestaat de boom uit alleen maar de root en wil je sowieso een axioma 
         # verbinding met een andere boom uitvoeren
+        #print(root.data, root.polarity, root.parent.data, "1")
+        #self.findOtherTree(root) #even kijken wat handig is
         if(self.root.right != None and self.root.left != None):
             #kijk eerst naar het andere kind van de parent
             #als de huidige knoop het rechterkind is, kijk naar links. Anders kijk naar rechts
@@ -175,12 +180,17 @@ class Axioma:
         #hierna kijk via linkedlist naar de andere bomen in het bewijsnet om een connectie te maken.
     def findOtherTree(self, root):
         for rootPassed, treePassed in self.passedTrees:
+            print(rootPassed.data, root.data)
             #check for each tree that we already constructed if there is an axiom connection possible
             if(self.root != rootPassed):
                 #if the root of the current tree is not the same as the root of the tree that we want to connect, 
                 # then we can try to find leaves to connect in that tree
-                print(self.root.data , rootPassed.data)
-                self.find_leafOtherTree(root, rootPassed)
+                #print(self.root.data , rootPassed.data)
+                otherLeaf = self.find_leafOtherTree(root, rootPassed)
+                #print(otherLeaf)
+                if(otherLeaf == None):
+                    print("is none")
+
     
     def find_mostRightLeaf(self, vertexOut, vertexIn):
         '''If the vertex we want to connect is closest to the right side of the neighbour tree.'''
@@ -308,21 +318,26 @@ class Axioma:
         Doe opnieuw, totdat elke paren van typen verbonden zijn.
         Als er typen over blijven die nog geen verbinding hebben, sla deze op.'''
         #eerst kijken of de verbinding al bestaat, dan pas een nieuwe axioma verbinding maken
-        if((root.axiom != vertex or vertex.axiom != root) and (root.axiom == None and vertex.axiom == None)):
+        #ook checken of we niet al eerder hebben geprobeerd deze verbinding te maken
+        if((root.axiom != vertex or vertex.axiom != root) and (root.axiom == None and vertex.axiom == None) and 
+        (vertex not in root.axiomRemoved and root not in vertex.axiomRemoved)):
             #if an axiom connection already exists between these vertices, we do not make another connection
             root.axiom = vertex
             vertex.axiom = root
-            print("een axioma verbinding is gemaakt ", root.data ,root.polarity, vertex.data, vertex.polarity )
+            print("een axioma verbinding is gemaakt ", root.data ,root.parent.data,  vertex.data, vertex.parent.data )
+            #print("parents", root.parent.data, vertex.parent.data)
             #als de verbinding is gemaakt dan wil je kijken of de verbinding uberhaupt mogelijk is
             #dit checken gaat telkens vanuit de output naar input polariteit, dus kijk eerst welke kant de axioma verbinding op loopt
             if(root.polarity == 0):
+                #print("ifstate", root.parent.data, vertex.parent.data)
                 self.checkForCycle(root, vertex)
             else:
                 self.checkForCycle(vertex, root)
         
-        if(self.cycleFound == True and self.iLinkPassed == False):
-            #in this case there is a cycle and we want to get rid of the last axiom made
-            self.removeAxioma(root, vertex)
+            if(self.cycleFound == True and self.iLinkPassed == False):
+                #in this case there is a cycle and we want to get rid of the last axiom made
+                print("removed",  root.data ,root.parent.data,  vertex.data, vertex.parent.data)
+                self.removeAxioma(root, vertex)
 
         #maar ook nog checken of er geen kruizen zijn!! Sinds de laatst gemaakte verbinding. Dus kijken of de huidige verbinding kruist met andere axioma's die al bestaan.
         #kijken voor alles binnen de axioma of zij nog een verbinding meoten krijgen
@@ -342,10 +357,12 @@ class Axioma:
             self.cycleFound = True
             return self.cycleFound
         if(rootInput.parent != None):
+            #print(rootInput.parent.data, "parent1")
             if(rootInput.parent.left != rootInput):
                 if(rootInput.parent.left.isLeaf == True):
                     if(rootInput.parent.left.axiom != None):
                         goToNode = rootInput.parent.left.axiom
+                        return self.checkForCycle(rootOutput, rootInput.parent.left)
                     else:
                         return self.checkForCycle(rootOutput, rootInput.parent)
                 else:
@@ -356,6 +373,7 @@ class Axioma:
                 if(rootInput.parent.right.isLeaf == True):
                     if(rootInput.parent.right.axiom != None):
                         goToNode = rootInput.parent.right.axiom
+                        return self.checkForCycle(rootOutput, rootInput.parent.right)
                     else:
                         return self.checkForCycle(rootOutput, rootInput.parent)
                 else:
@@ -366,11 +384,15 @@ class Axioma:
             else:
                 return self.checkForCycle(rootOutput, rootInput.parent)
 
+            #check if the current node we are at is the same as the output node, this would be a cycle
+            if(goToNode == rootOutput):
+                print("Same")
+                return self.checkForCycle(rootOutput, goToNode)
+
             if(goToNode.parent.right != goToNode):
                 #kijk of de dichtsbijzijnde buur van de node toevallig de node is die we zoeken voor een cykel
                 if(goToNode.parent.right == rootOutput):
                     #nog checken of hij langs een i-link gaat!
-                    print("er is een cykel aanwezig")
                     self.cycleFound = True
                     return self.cycleFound
                 else:
@@ -385,6 +407,7 @@ class Axioma:
             else:
                 return self.checkForCycle(rootOutput, goToNode.parent)
         else:
+            print(rootOutput.parent.data)
             print("een cykel is niet mogelijk, dus de axioma verbinding mag blijven")
             return self.cycleFound
     
@@ -393,6 +416,9 @@ class Axioma:
         if(type1.axiom == type2 or type2.axiom != type1):
             type1.axiom = None
             type2.axiom = None
+            #keep track of the axioms we already tried to make, but had to remove
+            type1.axiomRemoved.append(type2)
+            type2.axiomRemoved.append(type1)
 
 class BuildStartTree:
     '''build the prooftree of the input sentence, first build tree per word in linked list'''
@@ -419,8 +445,15 @@ class BuildStartTree:
             #check the connective of the root and call that connective class
             parser_obj = type_parser.TypeParser()
             typelist = parser_obj.createList(stringtype)
+            #typelist = [[ ['N', '\\', 'S'], '\\', ['N', '\\', 'S']], '/', 'N']
+            #typelist = [[ 'N', '\\', ['N', '/', 'N']], '*', 'S' ]
+            #typelist = ['NP', '/', ['NP', '\\', 'N']]
+            #typelist = ['N', '/', 'N']
+            #root = tree.insertVertex(root, typelist, "root", 1, parent, iLink)
+            #type_polarity = 1
             #if there is a connective in the string on which we need to split
             self.build(root, tree, typelist, type_polarity)
+            #print("dgg", typelist)
             #tree.traverseInorder(root)
 
             passedTrees.append([root, tree])
@@ -432,7 +465,11 @@ class BuildStartTree:
             #axioma_object = Axioma(axiom_root, axiom_root.polarity)
 
     def build(self, root, tree, typelist, type_polarity):
-        if(len(typelist) > 1): #as long as we can split and build the tree
+        connective_incl = False
+        for element in typelist:
+            if(element == '/' or element == '\\' or element == '*'):
+                connective_incl = True
+        if(connective_incl == True): #as long as we can split and build the tree
             iLink = None #set i-link type to None
             if(typelist[1] == "/"):
                 over_obj = Over(type_polarity)
@@ -454,19 +491,39 @@ class BuildStartTree:
                 right_pol = pol[1]
                 iLink = pol[2]
 
+            #new_typelist = [typelist[2]]
+            #print(new_typelist)
             #add values of seperated root to tree, including their polarity
+            connective_incl_left = False
+            connective_incl_right = False
             if typelist[0] != None and left_pol != None:
-                tree.insertVertex(root, typelist[0], "left", left_pol, root, iLink)
+                for element in typelist[0]:
+                    #als de lijst uit alleen maar axioma's bestaat, dan staat er wss een NP type in dat gezien wordt als twee elementen
+                    #in dit geval maken we een nieuwe lijst van dat element en geven we die mee
+                    if(element == '/' or element == '\\' or element == '*'):
+                        connective_incl_left = True
+                if(connective_incl_left == False):
+                    new_typelist_left = [typelist[0]]
+                    tree.insertVertex(root, new_typelist_left, "left", left_pol, root, iLink)
+                else:
+                    tree.insertVertex(root, typelist[0], "left", left_pol, root, iLink)
             if typelist[2] != None and right_pol != None:
-                tree.insertVertex(root, typelist[2], "right", right_pol, root, iLink)
+                for element in typelist[2]:
+                    if(element == '/' or element == '\\' or element == '*'):
+                        connective_incl_right = True
+                if(connective_incl_right == False):
+                    new_typelist_right = [typelist[2]]
+                    tree.insertVertex(root, new_typelist_right, "right", right_pol, root, iLink)
+                else:
+                    tree.insertVertex(root, typelist[2], "right", right_pol, root, iLink)
                 
             #check if we need to split the types any further
-            if(len(typelist[0]) > 1 ):
+            if(connective_incl_left == True):
                 self.build(root.left, tree, typelist[0], left_pol)
             else:
                 root.left.isLeaf = True
 
-            if(len(typelist[2]) > 1):
+            if(connective_incl_right == True):
                 self.build(root.right, tree, typelist[2], right_pol)
             else:
                 root.right.isLeaf = True
@@ -526,6 +583,8 @@ class Product:
 
 
 def main():
+    '''parsen string input + print output'''
+    #---------------------------------------
     read_sentence = read
     linkedlist = read_sentence.lijst
     obj = BuildStartTree(linkedlist)
