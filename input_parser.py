@@ -12,6 +12,7 @@ class Input:
 
     def parser(self):
         linkedList = linkedlist.LinkedList() #create an empty linked list
+        linkedList.add((None, "NP", 0)) #add sentence type to list
         #let 0 be an output polarity and 1 be an input polarity
         sentence_list = self.sentence.split()
         sentence_list.reverse()
@@ -26,12 +27,11 @@ class Input:
                 else:
                     #print(sentence_word + 'does not appear as real word')
                     None #moet dit nog even aanpassen want anders pakt hij ook niet bestaande woorden?
-        linkedList.add((None, "S", 0)) #add sentence type to list
         node = linkedList.root
         #print node.data
         while node:
             #print (node.data)
-            node = node.next #print 'thee wil ik' ipv 'ik wil thee'
+            node = node.next
         return linkedList
 
 class read():
