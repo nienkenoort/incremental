@@ -19,7 +19,7 @@ class Lexicon:
         Attributes
         ----------
         lexicon : dict()
-            name of the dictionary in which the words and their types are saved.
+            The name of the dictionary in which the words and their types are saved.
         """
         self.lexicon = dict()
        
