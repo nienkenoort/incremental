@@ -16,10 +16,9 @@ class Lexicon:
     """
     def __init__(self):
         """
-        Attributes
+        Parameters
         ----------
-        lexicon : dict()
-            The name of the dictionary in which the words and their types are saved.
+        None
         """
         self.lexicon = dict()
        
