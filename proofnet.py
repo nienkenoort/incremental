@@ -15,6 +15,7 @@ class Vertex:
         self.axiom = None
         self.axiomRemoved = [] #so that we will not try to make the same axioms that cannot be made over and over again.
         self.label = None #used for labelling all of the leaves, so we can check if any of the axiom connections cross each other.
+        self.potentialAxiom = [] #used for keeping track of all the possible vertices that can connect with the current vertex.
 
 class Tree:
     def createVertex(self, data, polarity, parent, iLink):
@@ -75,6 +76,7 @@ class Axioma:
         self.cycleFound = False
         self.iLinkPassed = False
         self.doCross = False
+        self.notConnected = [] #save all vertices that are not connected
 
     def find_leaf(self, root):
         #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
@@ -90,7 +92,7 @@ class Axioma:
     
     def find_leafOtherTree(self, root, rootOtherTree):
         #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
-        if(root.isLeaf == True and root.axiom == None):
+        if(root.isLeaf == True): #and root.axiom == None
             #if the current vertex is also a leaf, then we need to create an axiom with another vertex
             if(rootOtherTree.left != None and rootOtherTree.right != None):
                 #you always look at the trees on the left of the current tree, so we want to connect the most right leaves first.
@@ -98,15 +100,25 @@ class Axioma:
                 mostRightLeaf = self.find_mostRightLeaf(root, rootOtherTree)
                 self.toFalse(root)
                 self.toFalse(rootOtherTree)
+                #for element in root.potentialAxiom:
+                #    print(root.parent, element.data, element.parent.data, "YEEEET")
                 if(mostRightLeaf != None):
-                    self.createAxioma(root, mostRightLeaf)
+                    if(root.axiom != None):
+                        #root.potentialAxiom.append(mostRightLeaf)
+                        self.createAxioma(root, mostRightLeaf)
                 else: 
                     #als er geen axiomaverbinding gemaakt kan worden in de huidige boom, dan moet je kijken naar andere bomen
-                    return None
+                    if((len(root.potentialAxiom) > 0) and root.axiom == None):
+                        #in this case we did add possible axioms to the list
+                        self.createAxioma(root, root.potentialAxiom[0])
+                    else:
+                        return None
             else:
                 #if the other tree exists of only a single node, we need to check if that node can be connected
                 if(rootOtherTree.data == root.data and rootOtherTree.polarity != root.polarity):
-                    self.createAxioma(root, rootOtherTree)
+                    root.potentialAxiom.append(rootOtherTree)
+                    if(root.axiom == None):
+                        self.createAxioma(root, rootOtherTree)
                 else:
                     return None
         else:
@@ -190,6 +202,26 @@ class Axioma:
                 # then we can try to find leaves to connect in that tree
                 self.find_leafOtherTree(root, rootPassed)
 
+                for vertex in root.potentialAxiom:
+                    #check for each axiom we just added of there are no cycles
+                    if(root.polarity == 0):
+                        self.checkForCycle(root, vertex)
+                        self.checkForCross(root, vertex)
+                    else:
+                        self.checkForCycle(vertex, root)
+                        self.checkForCross(vertex, root)
+
+                    if((self.cycleFound == True and self.iLinkPassed == False) or self.doCross == True):
+                        print(self.doCross) #WAAROM???????????? is dit true
+                        #in this case there is a cycle and we want to get rid of the last axiom made
+                        self.cycleFound = False
+                        self.doCross = False
+                        print("removed from list",  root.data ,  vertex.data)
+                        root.potentialAxiom.remove(vertex)
+
+                    #set iLink back to false for next axiom
+                    self.iLinkPassed = False
+
     
     def find_mostRightLeaf(self, vertexOut, vertexIn):
         '''If the vertex we want to connect is closest to the right side of the neighbour tree.'''
@@ -201,7 +233,23 @@ class Axioma:
                 return None
         if(vertexIn.isLeaf == True):
             if(vertexIn.data == vertexOut.data and vertexIn.polarity != vertexOut.polarity):
-                return vertexIn
+                vertexOut.potentialAxiom.append(vertexIn) #add to potential list, we will eventually connect with the first element in this list
+                vertexIn.visited = True
+                if(vertexIn.parent != None):
+                    #de rest van de boom doorzoeken voor een verbinding
+                    if(vertexIn.parent.left != vertexIn):
+                        if(vertexIn.parent.left.visited == False):
+                            return self.find_mostRightLeaf(vertexOut, vertexIn.parent.left)
+                        else:
+                            return vertexIn
+                    else: #vertexIn.parent.right != vertexIn
+                        if(vertexIn.parent.right.visited == False):
+                            return self.find_mostRightLeaf(vertexOut, vertexIn.parent.right)
+                        else:
+                            return vertexIn
+                else:
+                    return vertexIn
+                #return vertexIn
             else:
                 vertexIn.visited = True
                 if(vertexIn.parent.left.visited == True and vertexIn.parent.right.visited == True):
@@ -332,10 +380,10 @@ class Axioma:
             else:
                 self.checkForCycle(vertex, root)
                 self.checkForCross(vertex, root)
-
             if((self.cycleFound == True and self.iLinkPassed == False) or self.doCross == True):
                 #in this case there is a cycle and we want to get rid of the last axiom made
                 self.cycleFound = False
+                self.doCross = False
                 print("removed",  root.data ,  vertex.data)
                 self.removeAxioma(root, vertex)
             
@@ -439,8 +487,6 @@ class Axioma:
                 #if there are leaves that could not connect, set cross to true
                 self.doCross = True
             return self.doCross
-                            
-
 
     def checkForCycle(self, rootOutput, rootInput):
         '''Check if there are any cycles that do not go through an i-link by adding the new axiom'''
@@ -713,6 +759,9 @@ def main():
     obj = BuildStartTree(linkedlist)
     read_root = obj.readRoot()
     #-------------------------------------
+    #vertex_obj = Vertex("hoi", 1, None, None)
+    #ax_obj = Axioma(vertex_obj, vertex_obj.polarity)
+    #create = ax_obj.find_vertex(vertex_obj)
 
 if __name__ == '__main__':
     main()
