@@ -68,7 +68,7 @@ class Tree:
 
 
 class Axioma:
-    def __init__(self, root, tree, passedTrees):
+    def __init__(self, root, tree, passedTrees, connected, tempList, posConn):
         '''kijken welke axioma's moeten ontstaan vanuit vertex met polarity'''
         self.tree = tree
         self.root = root
@@ -76,180 +76,141 @@ class Axioma:
         self.cycleFound = False
         self.iLinkPassed = False
         self.doCross = False
-        self.notConnected = [] #save all vertices that are not connected
+        self.connected = connected #a list with lists containing all possible axiom combinations by saving all axiom tuples where (output, input)
+        self.tempList = tempList
+        self.posConn = posConn
+        #self.notConnected = [] #save all vertices that are not connected
 
     def find_leaf(self, root):
         #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
         if(root.isLeaf == True and root.axiom == None):
             #if the current vertex is also a leaf, then we need to create an axiom with another vertex
             #self.find_vertex(root)
-            self.findOtherTree(root)
+            self.findOtherTree(root, False)
+            return self.tempList, False
+
+            # if(len(root.potentialAxiom) > 1):
+            #     for pair in self.tempList:
+            #         pair[0].axiom = None
+            #         pair[1].axiom = None
+            #     #dan maak je een nieuwe lijst en sla je hierin de nieuwe axiomas op
+            #     self.findOtherTree(root, True)
+            #     print("blijkbaar zijn er andere axioma verbidningen mogelijk")
+            #     print(len(self.posConn))
+            #     if(len(self.posConn) > len(self.tempList)):
+            #         useOtherList = True
+            #         #als deze lijst langer is dan tempList, dan pak je deze als je nieuwe templist
+            #         return self.posConn, useOtherList
+            # else:
+            #     useOtherList = False
+            #     return self.tempList, useOtherList
         else:
             #if the current vertex is not a leaf and it has children, go to that child
             if(root.left != None and root.right != None):
                 self.find_leaf(root.left)
                 self.find_leaf(root.right)
     
-    def find_leafOtherTree(self, root, rootOtherTree):
-        #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
-        if(root.isLeaf == True): #and root.axiom == None
-            #if the current vertex is also a leaf, then we need to create an axiom with another vertex
-            if(rootOtherTree.left != None and rootOtherTree.right != None):
-                #you always look at the trees on the left of the current tree, so we want to connect the most right leaves first.
-                #set root to visited?? Of hoeft dat niet omdat we in een andere boom aan het werken zijn aha
-                mostRightLeaf = self.find_mostRightLeaf(root, rootOtherTree)
-                self.toFalse(root)
-                self.toFalse(rootOtherTree)
-                #for element in root.potentialAxiom:
-                #    print(root.parent, element.data, element.parent.data, "YEEEET")
-                if(mostRightLeaf != None):
-                    if(root.axiom != None):
-                        #root.potentialAxiom.append(mostRightLeaf)
-                        self.createAxioma(root, mostRightLeaf)
-                else: 
-                    #als er geen axiomaverbinding gemaakt kan worden in de huidige boom, dan moet je kijken naar andere bomen
-                    if((len(root.potentialAxiom) > 0) and root.axiom == None):
-                        #in this case we did add possible axioms to the list
-                        self.createAxioma(root, root.potentialAxiom[0])
-                    else:
-                        return None
-            else:
-                #if the other tree exists of only a single node, we need to check if that node can be connected
-                if(rootOtherTree.data == root.data and rootOtherTree.polarity != root.polarity):
-                    root.potentialAxiom.append(rootOtherTree)
-                    if(root.axiom == None):
-                        self.createAxioma(root, rootOtherTree)
+    def find_leafOtherTree(self, root, rootOtherTree, useOtherList):
+        #if the current vertex is also a leaf, then we need to create an axiom with another vertex
+        if(rootOtherTree.left != None and rootOtherTree.right != None):
+            #you always look at the trees on the left of the current tree, so we want to connect the most right leaves first.
+            mostRightLeaf = self.find_mostRightLeaf(root, rootOtherTree, useOtherList)
+            self.toFalse(root)
+            self.toFalse(rootOtherTree)
+            if(mostRightLeaf != None):
+                if(root.axiom == None):
+                    self.createAxioma(root, mostRightLeaf, useOtherList)
+            else: 
+                #als er geen axiomaverbinding gemaakt kan worden in de huidige boom, dan moet je kijken naar andere bomen
+                index = 0
+                if((len(root.potentialAxiom) > 0) and root.axiom == None):
+                    #in this case we did add possible axioms to the list
+                    while(root.potentialAxiom[index].axiom != None):
+                        index += 1
+                        if(index >= (len(root.potentialAxiom) - 1)):
+                            return None
+                    self.createAxioma(root, root.potentialAxiom[index], useOtherList)
                 else:
                     return None
         else:
-            #if the current vertex is not a leaf and it has children, go to that child
-            if(root.left != None and root.right != None):
-                self.find_leafOtherTree(root.left)
-                self.find_leafOtherTree(root.right)
+            #if the other tree exists of only a single node, we need to check if that node can be connected
+            if(rootOtherTree.data == root.data and rootOtherTree.polarity != root.polarity):
+                root.potentialAxiom.append(rootOtherTree)
+                if(root.axiom == None):
+                    self.createAxioma(root, rootOtherTree, useOtherList)
+            else:
+                return None
 
-    def find_vertex(self, root):
-        '''vind een knoop waarmee de input vertex een axioma verbinding mee kan vormen
-        First look in the closest neighbour trees. If an axiom connection cannot be made, continue to the tree in which the current node appears as well.'''
-        #je geeft altijd de root mee, dus als de root geen linker- en rechterkind heeft, dan bestaat de boom uit alleen maar de root en wil je sowieso een axioma 
-        # verbinding met een andere boom uitvoeren
-        #print(root.data, root.polarity, root.parent.data, "1")
-        #self.findOtherTree(root) #even kijken wat handig is
-        if(self.root.right != None and self.root.left != None):
-            #kijk eerst naar het andere kind van de parent
-            #als de huidige knoop het rechterkind is, kijk naar links. Anders kijk naar rechts
-            if(root.parent.left != root):
-                if(root.parent.left.isLeaf == True):
-                    if(root.data == root.parent.left.data and root.polarity != root.parent.left.polarity):
-                        #print(root.data , root.polarity , root.parent.left.data , root.parent.left.polarity)
-                        self.createAxioma(root, root.parent.left)
-                    else:
-                        root.visited = True
-                        mostRightLeaf = self.find_mostRightLeaf(root, root.parent.left)
-                        self.toFalse(root)
-                        if(mostRightLeaf != None):
-                            self.createAxioma(root, mostRightLeaf)
-                        else: 
-                            #als er geen axiomaverbinding gemaakt kan worden in de huidige boom, dan moet je kijken naar andere bomen
-                            self.findOtherTree(root)
-                else:
-                    #hier ga je kijken naar de linkerbuur, en is de root dus de rechterbuur van de parent. 
-                    # Dus de leaves die het dichtst bij de huidige root zitten, zitten rechts van de linkerbuur van de parent.
-                    #Dus kijk eerst naar rechts van root.parent.left
-                    root.visited = True
-                    mostRightLeaf = self.find_mostRightLeaf(root, root.parent.left)
-                    #hier moet je alle visits weer op false zetten
-                    if(mostRightLeaf != None):
-                        self.createAxioma(root, mostRightLeaf)
-                    else: 
-                        #als er geen axiomaverbinding gemaakt kan worden in de huidige boom, dan moet je kijken naar andere bomen
-                        self.findOtherTree(root)
-                    #kijk telkens per leaf of hij verbonden kan worden met de root
-            else: #if root.parent.right != root
-                if(root.parent.right.isLeaf == True):
-                    if(root.data == root.parent.right.data and root.polarity != root.parent.right.polarity):
-                        #print(root.data , root.polarity , root.parent.right.data , root.parent.right.polarity)
-                        self.createAxioma(root, root.parent.right)
-                    else:
-                        root.visited = True
-                        mostLeftLeaf = self.find_mostLeftLeaf(root, root.parent.right)
-                        self.toFalse(root)
-                        if(mostLeftLeaf != None):
-                            self.createAxioma(root, mostLeftLeaf)
-                        else: 
-                            #als er geen axiomaverbinding gemaakt kan worden in de huidige boom, dan moet je kijken naar andere bomen
-                            self.findOtherTree(root)
-                else:
-                    root.visited = True
-                    mostLeftLeaf = self.find_mostLeftLeaf(root, root.parent.right)
-                    self.toFalse(root)
-                    if(mostLeftLeaf != None):
-                        self.createAxioma(root, mostLeftLeaf)
-                    else: 
-                        #als er geen axiomaverbinding gemaakt kan worden in de huidige boom, dan moet je kijken naar andere bomen
-                        self.findOtherTree(root)
-        else: 
-            #als er geen verbinding binnen de eigen boom kan worden gemaakt, dan moet dat met een andere boom gebeuren.
-            #print(self.root.data,"connect with other tree")
-            self.findOtherTree(root)
-
-        #hierna kijk via linkedlist naar de andere bomen in het bewijsnet om een connectie te maken.
-    def findOtherTree(self, root):
+    def findOtherTree(self, root, useOtherList):
         for rootPassed, treePassed in self.passedTrees:
             #check for each tree that we already constructed if there is an axiom connection possible
             if(self.root != rootPassed):
                 print("passed",rootPassed.data, self.root.data)
                 #if the root of the current tree is not the same as the root of the tree that we want to connect, 
                 # then we can try to find leaves to connect in that tree
-                self.find_leafOtherTree(root, rootPassed)
-
-                for vertex in root.potentialAxiom:
-                    #check for each axiom we just added of there are no cycles
-                    if(root.polarity == 0):
-                        self.checkForCycle(root, vertex)
-                        self.checkForCross(root, vertex)
-                    else:
-                        self.checkForCycle(vertex, root)
-                        self.checkForCross(vertex, root)
-
-                    if((self.cycleFound == True and self.iLinkPassed == False) or self.doCross == True):
-                        print(self.doCross) #WAAROM???????????? is dit true
-                        #in this case there is a cycle and we want to get rid of the last axiom made
-                        self.cycleFound = False
-                        self.doCross = False
-                        print("removed from list",  root.data ,  vertex.data)
-                        root.potentialAxiom.remove(vertex)
-
-                    #set iLink back to false for next axiom
-                    self.iLinkPassed = False
+                self.find_leafOtherTree(root, rootPassed, useOtherList)
 
     
-    def find_mostRightLeaf(self, vertexOut, vertexIn):
+    def find_mostRightLeaf(self, vertexOut, vertexIn, useOtherList):
         '''If the vertex we want to connect is closest to the right side of the neighbour tree.'''
         #root of the tree in which we want to search now it vertexIn.
         if(vertexIn.visited == True):
             if(vertexIn.parent != None):
-                return self.find_mostRightLeaf(vertexOut, vertexIn.parent)
+                return self.find_mostRightLeaf(vertexOut, vertexIn.parent, useOtherList)
             else:
                 return None
         if(vertexIn.isLeaf == True):
             if(vertexIn.data == vertexOut.data and vertexIn.polarity != vertexOut.polarity):
-                vertexOut.potentialAxiom.append(vertexIn) #add to potential list, we will eventually connect with the first element in this list
-                vertexIn.visited = True
-                if(vertexIn.parent != None):
-                    #de rest van de boom doorzoeken voor een verbinding
-                    if(vertexIn.parent.left != vertexIn):
-                        if(vertexIn.parent.left.visited == False):
-                            return self.find_mostRightLeaf(vertexOut, vertexIn.parent.left)
-                        else:
-                            return vertexIn
-                    else: #vertexIn.parent.right != vertexIn
-                        if(vertexIn.parent.right.visited == False):
-                            return self.find_mostRightLeaf(vertexOut, vertexIn.parent.right)
-                        else:
-                            return vertexIn
+                if(useOtherList == False):
+                    vertexOut.potentialAxiom.append(vertexIn) #add to potential list, we will eventually connect with the first element in this list
+                    vertexIn.visited = True
+                    if(vertexIn.parent != None):
+                        #de rest van de boom doorzoeken voor een verbinding
+                        if(vertexIn.parent.left != vertexIn):
+                            if(vertexIn.parent.left.visited == False):
+                                return self.find_mostRightLeaf(vertexOut, vertexIn.parent.left, useOtherList)
+                            else:
+                                return vertexIn
+                        else: #vertexIn.parent.right != vertexIn
+                            if(vertexIn.parent.right.visited == False):
+                                return self.find_mostRightLeaf(vertexOut, vertexIn.parent.right, useOtherList)
+                            else:
+                                return vertexIn
+                    else:
+                        return vertexIn
+                elif([vertexOut, vertexIn] not in self.tempList):
+                    vertexOut.potentialAxiom.append(vertexIn) #add to potential list, we will eventually connect with the first element in this list
+                    vertexIn.visited = True
+                    if(vertexIn.parent != None):
+                        #de rest van de boom doorzoeken voor een verbinding
+                        if(vertexIn.parent.left != vertexIn):
+                            if(vertexIn.parent.left.visited == False):
+                                return self.find_mostRightLeaf(vertexOut, vertexIn.parent.left, useOtherList)
+                            else:
+                                return vertexIn
+                        else: #vertexIn.parent.right != vertexIn
+                            if(vertexIn.parent.right.visited == False):
+                                return self.find_mostRightLeaf(vertexOut, vertexIn.parent.right, useOtherList)
+                            else:
+                                return vertexIn
+                    else:
+                        return vertexIn
                 else:
-                    return vertexIn
-                #return vertexIn
+                    vertexIn.visited = True
+                    if(vertexIn.parent.left.visited == True and vertexIn.parent.right.visited == True):
+                        vertexIn.parent.visited = True
+                    #if we have reached a leaf, but this is not a leaf we can connect, we need to look at the left side
+                    if(vertexIn == vertexIn.parent.left): #maar wat als je nu N*N hebt? dan is de polariteit en data hetzelfde?
+                        #if we have already looked at the left leaf and we cannot connect this one either, we need to go back to the most recent parent of which
+                        #we have not covered the left child yet
+                        if(vertexIn.parent.parent != vertexIn and vertexIn.parent.visited == True and vertexIn.parent.parent != None):
+                            #if the current parent is already visited, we need to look at the right side of the tree
+                            return self.find_mostLeftLeaf(vertexOut, vertexIn.parent.parent.left, useOtherList)
+                        else:
+                            #nu is er blijkbaar geen verbinding mogelijk in de huidige tree.
+                            return None
+                    else:
+                        return self.find_mostRightLeaf(vertexOut, vertexIn.parent.left, useOtherList)
             else:
                 vertexIn.visited = True
                 if(vertexIn.parent.left.visited == True and vertexIn.parent.right.visited == True):
@@ -260,74 +221,28 @@ class Axioma:
                     #we have not covered the left child yet
                     if(vertexIn.parent.parent != vertexIn and vertexIn.parent.visited == True and vertexIn.parent.parent != None):
                         #if the current parent is already visited, we need to look at the right side of the tree
-                        return self.find_mostLeftLeaf(vertexOut, vertexIn.parent.parent.left)
+                        return self.find_mostRightLeaf(vertexOut, vertexIn.parent.parent.left, useOtherList)
                     else:
                         #nu is er blijkbaar geen verbinding mogelijk in de huidige tree.
                         return None
                 else:
-                    return self.find_mostRightLeaf(vertexOut, vertexIn.parent.left)
+                    return self.find_mostRightLeaf(vertexOut, vertexIn.parent.left, useOtherList)
         else:
             #go further into the tree
             if(vertexIn.left.visited == True and vertexIn.right.visited == True):
                 vertexIn.visited = True
                 if(vertexIn.parent != None):
-                    return self.find_mostRightLeaf(vertexOut, vertexIn.parent.left)
+                    return self.find_mostRightLeaf(vertexOut, vertexIn.parent.left, useOtherList)
                 else:
                     return None
             else:
                 if(vertexIn.right.visited == True):
-                    return self.find_mostRightLeaf(vertexOut, vertexIn.left)
+                    return self.find_mostRightLeaf(vertexOut, vertexIn.left, useOtherList)
                 elif(vertexIn.left.visited == True):
-                    return self.find_mostRightLeaf(vertexOut, vertexIn.right) 
+                    return self.find_mostRightLeaf(vertexOut, vertexIn.right, useOtherList) 
                 else:
                     #if both are not visited yet, we choose the most right vertex
-                    return self.find_mostRightLeaf(vertexOut, vertexIn.right)
-    
-    def find_mostLeftLeaf(self, vertexOut, vertexIn):
-        '''If the vertex we want to connect is closest to the left side of the neighbour tree.'''
-        #root of the tree in which we want to search now it vertexIn.
-        if(vertexIn.visited == True):
-            #probleem want vertexIn.parent kan ook None zijn 
-            if(vertexIn.parent != None):
-                return self.find_mostLeftLeaf(vertexOut, vertexIn.parent) 
-            else:
-                #if the parents of the current vertex are visited already, we assume that we have visited all vertices
-                return None
-        elif(vertexIn.isLeaf == True):
-            if(vertexIn.data == vertexOut.data and vertexIn.polarity != vertexOut.polarity):
-                return vertexIn
-            else:
-                vertexIn.visited = True
-                if(vertexIn.parent.left.visited == True and vertexIn.parent.right.visited == True):
-                    vertexIn.parent.visited = True
-                #if we have reached a leaf, but this is not a leaf we can connect, we need to look at the left side
-                if(vertexIn == vertexIn.parent.right): #maar wat als je nu N*N hebt? dan is de polariteit en data hetzelfde?
-                    #if we have already looked at the left leaf and we cannot connect this one either, we need to go back to the most recent parent of which
-                    #we have not covered the left child yet
-                    if(vertexIn.parent.parent != vertexIn and vertexIn.parent.visited == True and vertexIn.parent.parent != None):
-                        #if the current parent is already visited, we need to look at the right side of the tree
-                        return self.find_mostLeftLeaf(vertexOut, vertexIn.parent.parent.right)
-                    else:
-                        #nu is er blijkbaar geen verbinding mogelijk in de huidige tree.
-                        return None
-                else:
-                    return self.find_mostLeftLeaf(vertexOut, vertexIn.parent.right)
-        else:
-            #go further into the tree
-            if(vertexIn.left.visited == True and vertexIn.right.visited == True):
-                vertexIn.visited = True
-                if(vertexIn.parent != None):
-                    return self.find_mostLeftLeaf(vertexOut, vertexIn.parent.right)
-                else:
-                    return None
-            else:
-                if(vertexIn.left.visited == True):
-                    return self.find_mostLeftLeaf(vertexOut, vertexIn.right)
-                elif(vertexIn.right.visited == True):
-                    return self.find_mostLeftLeaf(vertexOut, vertexIn.left) 
-                else:
-                    #if both are not visited yet, we choose the most left vertex
-                    return self.find_mostLeftLeaf(vertexOut, vertexIn.left)
+                    return self.find_mostRightLeaf(vertexOut, vertexIn.right, useOtherList)
 
     def toFalse(self, root):
         '''After trying to find an axiom connection for one leaf, we want to put back all vertex.visited values to false.'''
@@ -357,7 +272,7 @@ class Axioma:
             if(root.parent != None):
                 self.toFalse(root.parent)
     
-    def createAxioma(self, root, vertex):
+    def createAxioma(self, root, vertex, useOtherList):
         #kijk voor alle leaves of ze al een verbinding hebben en maak anders een verbinding
         '''het creeren van axioma verbinding tussen vertex en andere knoop.
         Begin bij S(output), ga naar een S(input). Als deze S een left tag heeft, kijk naar het woord dat een right tag heeft en vind hierbij een type.
@@ -368,25 +283,39 @@ class Axioma:
         #ook checken of we niet al eerder hebben geprobeerd deze verbinding te maken
         if((root.axiom != vertex or vertex.axiom != root) and (root.axiom == None and vertex.axiom == None) and 
         (vertex not in root.axiomRemoved and root not in vertex.axiomRemoved)):
-            #if an axiom connection already exists between these vertices, we do not make another connection
             root.axiom = vertex
             vertex.axiom = root
-            print("een axioma verbinding is gemaakt ", root.data ,root.polarity,  vertex.data, vertex.polarity )
+            print("een axioma verbinding is gemaakt ", root.data ,root.label,  vertex.data, vertex.label )
             #als de verbinding is gemaakt dan wil je kijken of de verbinding uberhaupt mogelijk is
             #dit checken gaat telkens vanuit de output naar input polariteit, dus kijk eerst welke kant de axioma verbinding op loopt
             if(root.polarity == 0):
                 self.checkForCycle(root, vertex)
                 self.checkForCross(root, vertex)
+                if(useOtherList == False):
+                    self.tempList.append([root, vertex])
+                else:
+                    print("added is ", root.label, vertex.label)
+                    self.posConn.append([root, vertex])
             else:
                 self.checkForCycle(vertex, root)
                 self.checkForCross(vertex, root)
+                if(useOtherList == False):
+                    self.tempList.append([vertex, root])
+                else:
+                    print("added is ", vertex.label, root.label)
+                    self.posConn.append([vertex, root])
             if((self.cycleFound == True and self.iLinkPassed == False) or self.doCross == True):
                 #in this case there is a cycle and we want to get rid of the last axiom made
                 self.cycleFound = False
                 self.doCross = False
-                print("removed",  root.data ,  vertex.data)
+                print("removed",  root.data, root.label ,  vertex.data, vertex.label)
                 self.removeAxioma(root, vertex)
-            
+                #remove last added item of list
+                if(useOtherList == False):
+                    self.tempList.pop()
+                else:
+                    self.posConn.pop()
+
             #set iLink back to false for next axiom
             self.iLinkPassed = False
     
@@ -479,8 +408,9 @@ class Axioma:
                                 self.checkForCycle(vertex2, vertex1)
                             if(self.cycleFound == False):
                                 #if there is no cycle if this would be a connection, then we can delete the elements from the set
-                                noAxiom.remove(vertex1)
-                                noAxiom.remove(vertex2)
+                                if(vertex1 in noAxiom and vertex2 in noAxiom):
+                                    noAxiom.remove(vertex1)
+                                    noAxiom.remove(vertex2)
             #set cycle back to false
             self.cycleFound = False
             if(len(noAxiom) > 0):
@@ -594,6 +524,9 @@ class BuildStartTree:
         linkedList = self.linkedList
         node = linkedList.root
         passedTrees = []
+        connected = []
+        axiomList = []
+        possibleConnection = []
         while node:
             root = None
             left_vertex = None
@@ -610,23 +543,28 @@ class BuildStartTree:
             typelist = parser_obj.createList(stringtype)
             #print(type_polarity)
             root = tree.insertVertex(root, typelist, "root", type_polarity, parent, iLink)
-            #typelist = [[ ['N', '\\', 'S'], '\\', ['N', '\\', 'S']], '/', 'N']
-            #typelist = [[ 'N', '\\', ['N', '/', 'N']], '*', 'S' ]
-            #typelist = ['NP', '/', ['NP', '\\', 'N']]
-            #typelist = ['N', '/', 'N']
-            #root = tree.insertVertex(root, typelist, "root", 1, parent, iLink)
-            #type_polarity = 1
             #if there is a connective in the string on which we need to split
             self.build(root, tree, typelist, type_polarity)
             #tree.traverseInorder(root)
 
             passedTrees.append([root, tree])
             #op dit punt heb je (als je net begonnen bent) 1 boom gemaakt. Nu wil je dus alvast kijken naar welke mogelijke axioma verbindingen er zijn.
-            axioma_object = Axioma(root, tree, passedTrees)
-            leaf = axioma_object.find_leaf(root)
+            axioma_object = Axioma(root, tree, passedTrees, connected, axiomList, possibleConnection)
+            axioList = axioma_object.find_leaf(root)
+            if(axioList != None):
+                if(axioList[0] != None and axioList[0] != []):
+                    if(axioList[1] == False):
+                        axiomList = axioList[0]
+                    else:
+                        possibleConnection = axioList[0]
+
+            # for item in axiomList:
+            #     print(item[0].data, item[1].data)
             node = node.next
-            #doe dit alleen als de huidige root anders is dan vorige root
-            #axioma_object = Axioma(axiom_root, axiom_root.polarity)
+
+        #nu ben je alle bomen langs gegaan, kijk naar de knopen die nog geen verbinding hebben
+        connected.append(axiomList)
+        print(len(connected))
 
     def build(self, root, tree, typelist, type_polarity):
         connective_incl = False
@@ -753,15 +691,11 @@ class Product:
 
 
 def main():
-    #---------------------------------------
     read_sentence = read
     linkedlist = read_sentence.lijst
     obj = BuildStartTree(linkedlist)
     read_root = obj.readRoot()
-    #-------------------------------------
-    #vertex_obj = Vertex("hoi", 1, None, None)
-    #ax_obj = Axioma(vertex_obj, vertex_obj.polarity)
-    #create = ax_obj.find_vertex(vertex_obj)
+
 
 if __name__ == '__main__':
     main()
