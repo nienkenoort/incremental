@@ -70,13 +70,6 @@ class Tree:
             print (root.data)
             self.traverseInorder(root.right)
 
-# class PossibleAxiomCombo:
-#     def __init__(self):
-#         self.allAxioms = []
-    
-#     def save(self, axiomCombo):
-#         self.allAxioms.append(axiomCombo)
-
 class Axioma:
     def __init__(self, root, passedTrees, connected, tempList):
         '''kijken welke axioma's moeten ontstaan vanuit vertex met polarity'''
@@ -94,6 +87,7 @@ class Axioma:
         if(root.isLeaf == True and root.axiom == None):
             #if the current vertex is also a leaf, then we need to create an axiom with another vertex
             #self.find_vertex(root)
+            print("we gaan nu kijken of we de huidige boom kunnen verbinden", root.label)
             self.findOtherTree(root)
             #return self.connected
             return (self.tempList)
@@ -170,7 +164,6 @@ class Axioma:
                     return None
             else: 
                 #als er geen axiomaverbinding gemaakt is met de huidige boom, kijk je naar oude nodes waar je een connectie mee kunt maken met potentialAxiom
-                withAxiom = []
                 if((len(root.potentialAxiom) > 0) and root.axiom == None):
                     #in this case we did add possible axioms to the list
                     connect = None
@@ -184,27 +177,6 @@ class Axioma:
                                     break
                 else:
                     return None
-                # else:
-                #     print(len(root.potentialAxiom), root.axiom, "misschien hadnig om te weten dat ik hier moet kijken")
-                #     #if the node we want to connect with already has an axiom connection, remove that connection
-                #     for elem in root.potentialAxiom:
-                #         axiom = elem.axiom
-                #         if((len(root.potentialAxiom) > 0) and root.axiom == None):
-                #             if(elem not in root.axiomRemoved):
-                #                 if(elem.axiom != None):
-                #                     self.removeAxioma(elem, elem.axiom)
-                #                     connect = elem
-                #                     self.createAxioma(root, connect)
-                #                     if(root.axiom == connect):
-                #                         break
-                #                     else:
-                #                         #if the current node is not connected with the root, then the old axiom needs to be restored
-                #                         self.removeAxioma(root, elem)
-                #                         if(axiom in elem.axiomRemoved):
-                #                             elem.axiomRemoved.remove(axiom)
-                #                         if(elem in axiom.axiomRemoved):
-                #                             axiom.axiomRemoved.remove(elem)
-                #                         self.createAxioma(elem, axiom)
 
                 # else:
                 #     # if(root not in self.notConnected and root.axiom == None):
@@ -306,6 +278,7 @@ class Axioma:
             else:
                 return None
         if(vertexIn.isLeaf == True):
+            #print( "kijken welke waarde al ip trye stond " , vertexIn.label, vertexIn.data, vertexIn.polarity, vertexOut.label, vertexOut.data, vertexIn.polarity)
             if(vertexIn.data == vertexOut.data and vertexIn.polarity != vertexOut.polarity):
                 print("wat voeg je aan je lijst toe?", vertexOut.label, vertexIn.label, len(vertexOut.potentialAxiom))
                 vertexOut.potentialAxiom.append(vertexIn) #add to potential list, we will eventually connect with the first element in this list
@@ -608,13 +581,13 @@ class Axioma:
         '''Check if there are any cycles that do not go through an i-link by adding the new axiom'''
         #als er een directed path van de output node naar de input node is, voordar de verbinding is gemaakt, dan zal er een cykel ontstaan.
         #begin bij de input node, als je door de verbindingen te volgen bij de output node terecht komt dan is er een cykel aanwezig
+        #first look at the closest neighbour of the input node, go further into the tree if we do not reach the output node
         goToNode = None
         if(rootInput.isLeaf == True):
             rootInput.visited = True
         else:
             if(rootInput.left.visited == True and rootInput.right.visited == True):
                 rootInput.visited = True
-        #first look at the closest neighbour of the input node, go further into the tree if we do not reach the output node
         if(rootInput.iLink == 1):
             self.iLinkPassed = True
             #if we have passed an i-link, we know that the cycle is legit and that we can stop searching???
@@ -633,6 +606,7 @@ class Axioma:
                         self.cycleFound = True
                         return self.cycleFound
                     else:
+                        rootInput.parent.left.visited = True
                         if(rootInput.parent.left.axiom != None):
                             goToNode = rootInput.parent.left.axiom
                             if(rootInput.parent.parent != None):
@@ -666,6 +640,7 @@ class Axioma:
                         self.cycleFound = True
                         return self.cycleFound
                     else:
+                        rootInput.parent.right.visited = True
                         if(rootInput.parent.right.axiom != None):
                             goToNode = rootInput.parent.right.axiom
                             if(rootInput.parent.parent != None):
@@ -682,9 +657,10 @@ class Axioma:
                     #if the current vertex is not a leaf, we want to go to the leaves
                     if(rootInput.parent.right.left.visited == False):
                         return self.checkForCycle(rootOutput, rootInput.parent.right.left)
-                    if(self.cycleFound == False):
-                        if(rootInput.parent.right.right.visited):
-                            return self.checkForCycle(rootOutput, rootInput.parent.right.right)
+                    elif(rootInput.parent.right.right.visited == False):
+                        return self.checkForCycle(rootOutput, rootInput.parent.right.right)
+                    elif(rootInput.parent.right.visited == False):
+                        return self.checkForCycle(rootOutput, rootInput.parent.right) 
             else:
                 if(rootInput.parent.visited == False):
                     return self.checkForCycle(rootOutput, rootInput.parent)
@@ -746,11 +722,9 @@ class BuildStartTree:
         '''read what type is in the root, depending on this, call /,\,*'''
         linkedList = self.linkedList
         node = linkedList.root
-        #saveCombo_obj = PossibleAxiomCombo()
         passedTrees = []
         connected = []
         axiomList = []
-        possibleConnection = []
         while node:
             root = None
             left_vertex = None
@@ -777,9 +751,6 @@ class BuildStartTree:
             axioList = axioma_object.find_leaf(root)
             if(axioList != None and axioList != []):
                 axiomList = axioList
-
-            # for item in axiomList:
-            #     print(item[0].data, item[1].data)
             node = node.next
 
         #nu ben je alle bomen langs gegaan, kijk naar de knopen die nog geen verbinding hebben
@@ -794,21 +765,27 @@ class BuildStartTree:
         if(connective_incl == True): #as long as we can split and build the tree
             iLink = None #set i-link type to None
             if(typelist[1] == "/"):
-                over_obj = Over(type_polarity)
+                over_obj = Over(type_polarity, typelist)
                 #example typelist of N\N is [N,\,N]
                 pol = over_obj.get_polarity_and_iLink()
+                left_child = pol[3]
+                right_child = pol[4]
                 left_pol = pol[0]
                 right_pol = pol[1]
                 iLink = pol[2]
             elif(typelist[1] == "\\"):
-                under_obj = Under(type_polarity)
+                under_obj = Under(type_polarity, typelist)
                 pol = under_obj.get_polarity_and_iLink()
+                left_child = pol[3]
+                right_child = pol[4]
                 left_pol = pol[0]
                 right_pol = pol[1]
                 iLink = pol[2]
             elif (typelist[1] == "*"):
-                product_obj = Product(type_polarity)
+                product_obj = Product(type_polarity, typelist)
                 pol = product_obj.get_polarity_and_iLink()
+                left_child = pol[3]
+                right_child = pol[4]
                 left_pol = pol[0]
                 right_pol = pol[1]
                 iLink = pol[2]
@@ -816,37 +793,37 @@ class BuildStartTree:
             #add values of seperated root to tree, including their polarity
             connective_incl_left = False
             connective_incl_right = False
-            if typelist[0] != None and left_pol != None:
-                for element in typelist[0]:
+            if left_child != None and left_pol != None:
+                for element in left_child:
                     #als de lijst uit alleen maar axioma's bestaat, dan staat er wss een NP type in dat gezien wordt als twee elementen
                     #in dit geval maken we een nieuwe lijst van dat element en geven we die mee
                     if(element == '/' or element == '\\' or element == '*'):
                         connective_incl_left = True
                 if(connective_incl_left == False):
-                    new_typelist_left = [typelist[0]]
+                    new_typelist_left = [left_child]
                     tree.insertVertex(root, new_typelist_left, "left", left_pol, root, iLink)
                 else:
-                    tree.insertVertex(root, typelist[0], "left", left_pol, root, iLink)
-            if typelist[2] != None and right_pol != None:
-                for element in typelist[2]:
+                    tree.insertVertex(root, left_child, "left", left_pol, root, iLink)
+            if right_child != None and right_pol != None:
+                for element in right_child:
                     if(element == '/' or element == '\\' or element == '*'):
                         connective_incl_right = True
                 if(connective_incl_right == False):
-                    new_typelist_right = [typelist[2]]
+                    new_typelist_right = [right_child]
                     tree.insertVertex(root, new_typelist_right, "right", right_pol, root, iLink)
                 else:
-                    tree.insertVertex(root, typelist[2], "right", right_pol, root, iLink)
+                    tree.insertVertex(root, right_child, "right", right_pol, root, iLink)
                 
             #check if we need to split the types any further
             if(connective_incl_left == True):
-                self.build(root.left, tree, typelist[0], left_pol)
+                self.build(root.left, tree, left_child, left_pol)
             else:
                 root.left.label = self.labelLeaves
                 self.labelLeaves += 1
                 root.left.isLeaf = True
 
             if(connective_incl_right == True):
-                self.build(root.right, tree, typelist[2], right_pol)
+                self.build(root.right, tree, right_child, right_pol)
             else:
                 root.right.label = self.labelLeaves
                 self.labelLeaves += 1
@@ -859,43 +836,58 @@ class BuildStartTree:
             root.isLeaf = True
 
 class Over:
-    def __init__(self, polarity):
+    def __init__(self, polarity, typelist):
         '''je wil weten of de root een output polarity heeft of een input polarity. Bij een ingevulde zin hebben de woorden een input polarity, maar de S heeft een output polarity.'''
         self.polarity = polarity
+        self.typelist = typelist
 
     def get_polarity_and_iLink(self):
         '''de polariteit van de linker moet input zijn (gevuld rondje/1), de polariteit van de rechter moet output zijn (leeg rondje). BIJ EEN INPUT POLARITY ROOT.
         If the root is input, the transition will get an ii-link. Else it will get an i-link.'''
         if self.polarity == 1:
-            left_pol = 1
-            right_pol = 0
+            # left_pol = 1
+            # right_pol = 0
+            left = self.typelist[0]
+            right = self.typelist[2]
             iLink = 2
         else:
-            left_pol = 0
-            right_pol = 1  
+            # left_pol = 0
+            # right_pol = 1 
+            left = self.typelist[2]
+            right = self.typelist[0] 
             iLink = 1
-        return left_pol, right_pol, iLink
+        left_pol = 1
+        right_pol = 0
+        return left_pol, right_pol, iLink, left, right
     
 
 class Under:
-    def __init__(self, polarity):
+    def __init__(self, polarity, typelist):
         self.polarity = polarity
+        self.typelist = typelist
 
     def get_polarity_and_iLink(self):
         '''de polariteit van de linker moet output zijn (leeg rondje), de polariteit van de rechter moet input zijn (gevuld rondje). BIJ EEN INPUT POLARITY ROOT.'''
         if self.polarity == 1:
-            left_polarity = 0
-            right_polarity = 1
+            # left_polarity = 0
+            # right_polarity = 1
+            left = self.typelist[0]
+            right = self.typelist[2]
             iLink = 2
         else:
-            left_polarity = 1
-            right_polarity = 0
+            # left_polarity = 1
+            # right_polarity = 0
+            left = self.typelist[2]
+            right = self.typelist[0]
             iLink = 1
-        return left_polarity, right_polarity, iLink
+        left_polarity = 0
+        right_polarity = 1
+        return left_polarity, right_polarity, iLink, left, right
 
 class Product:
-    def __init__(self, polarity):
+    def __init__(self, polarity, typelist):
         self.polarity = polarity
+        self.typelist = typelist
 
     def get_polarity_and_iLink(self):
         '''de polariteit van beide dat ze input moeten zijn (gevuld rondje). BIJ EEN INPUT POLARITY ROOT.'''
@@ -903,11 +895,15 @@ class Product:
             left_polarity = 1
             right_polarity = 1
             iLink = 1
+            left = self.typelist[0]
+            right = self.typelist[2]
         else:
             left_polarity = 0
             right_polarity = 0
             iLink = 2
-        return left_polarity, right_polarity, iLink
+            left = self.typelist[2]
+            right = self.typelist[0]
+        return left_polarity, right_polarity, iLink, left, right
 
 
 def main():
