@@ -1,4 +1,8 @@
-from input_parser import read
+#Author: Nienke Noort 
+#Student number (Utrecht University): 6200451
+#Supervisor: Gijs J. Wijnholds
+
+from input_parser import Read
 import lexicon_parser
 import type_parser
 
@@ -74,9 +78,8 @@ class Tree:
 #         self.allAxioms.append(axiomCombo)
 
 class Axioma:
-    def __init__(self, root, tree, passedTrees, connected, tempList):
+    def __init__(self, root, passedTrees, connected, tempList):
         '''kijken welke axioma's moeten ontstaan vanuit vertex met polarity'''
-        self.tree = tree
         self.root = root
         self.passedTrees = passedTrees
         self.cycleFound = False
@@ -105,11 +108,11 @@ class Axioma:
         #if the current vertex is also a leaf, then we need to create an axiom with another vertex
         if(rootOtherTree.left != None and rootOtherTree.right != None):
             #you always look at the trees on the left of the current tree, so we want to connect the most right leaves first.
-            #set root to visited?? Of hoeft dat niet omdat we in een andere boom aan het werken zijn aha
             mostRightLeaf = self.find_mostRightLeaf(root, rootOtherTree)
             self.toFalse(root)
             self.toFalse(rootOtherTree)
             if(mostRightLeaf != None):
+                print(root.label, mostRightLeaf.label, "kom ik hier ook ofzo??????")
                 if(root.axiom == None):                            
                     #root.potentialAxiom.append(mostRightLeaf)
                     # if(root in self.notConnected):
@@ -119,13 +122,31 @@ class Axioma:
                     self.createAxioma(root, mostRightLeaf)
                     #if the just made axiom was removed, we need to create another axiom
                     if(root.axiom != mostRightLeaf):
+                        withAxiom = []
                         if((len(root.potentialAxiom) > 0) and root.axiom == None):
+                            print(root.label ,"eerst maar even kijken of ik hier kom")
                             #in this case we did add possible axioms to the list
                             connect = None
-                            for elem in root.potentialAxiom: #nu pak je alleen maar de eerste uit de lijst en kijk je niet verder, dus ook niet als met dat element geen verbinding kan worden gemaakt!!!
+                            for elem in root.potentialAxiom:
+                                print(elem.label, "met welke wil ik nu verbinden")
                                 axiom = elem.axiom
                                 if(elem not in root.axiomRemoved):
-                                    if(elem.axiom != None):
+                                    if(elem.axiom == None):
+                                        connect = elem
+                                        self.createAxioma(root, connect)
+                                        if(root.axiom == connect):
+                                            break
+                                        else:
+                                            #if the current node is not connected with the root, then the old axiom needs to be restored
+                                            self.removeAxioma(root, elem)
+                                            self.createAxioma(elem, axiom)
+                                    else:
+                                        #if the current node already has an axiom connection, then we want to add this node to the withAxiom[] for later use
+                                        withAxiom.append(elem)
+                            if(root.axiom == None):
+                                #if the current node still has no axiom connection, we need to go through the list of nodes that already had an axiom connection
+                                if(len(withAxiom) > 0):
+                                    for elem in withAxiom:
                                         self.removeAxioma(elem, elem.axiom)
                                         connect = elem
                                         self.createAxioma(root, connect)
@@ -134,27 +155,22 @@ class Axioma:
                                         else:
                                             #if the current node is not connected with the root, then the old axiom needs to be restored
                                             self.removeAxioma(root, elem)
-                                            elem.axiomRemoved.remove(axiom)
-                                            axiom.axiomRemoved.remove(elem)
+                                            if(axiom in elem.axiomRemoved):
+                                                elem.axiomRemoved.remove(axiom)
+                                            if(elem in axiom.axiomRemoved):
+                                                axiom.axiomRemoved.remove(elem)
                                             self.createAxioma(elem, axiom)
-                                    else:
-                                        connect = elem
-                                        self.createAxioma(root, connect)
-                                        if(root.axiom == connect):
-                                            break
-                                        else:
-                                            #if the current node is not connected with the root, then the old axiom needs to be restored
-                                            self.removeAxioma(root, elem)
-                                            elem.axiomRemoved.remove(axiom)
-                                            axiom.axiomRemoved.remove(elem)
-                                            self.createAxioma(elem, axiom)
+                                else:
+                                    #in this case no connection can be made
+                                    return None
                 else:
                     # if(root not in self.notConnected and root.axiom == None):
                     #     print("we added the following to the notcon list ",root.data, root.label, root.axiom)
                     #     self.notConnected.append(root)
                     return None
             else: 
-                #als er geen axiomaverbinding gemaakt kan worden in de huidige boom, dan moet je kijken naar andere bomen
+                #als er geen axiomaverbinding gemaakt is met de huidige boom, kijk je naar oude nodes waar je een connectie mee kunt maken met potentialAxiom
+                withAxiom = []
                 if((len(root.potentialAxiom) > 0) and root.axiom == None):
                     #in this case we did add possible axioms to the list
                     connect = None
@@ -166,30 +182,29 @@ class Axioma:
                                 self.createAxioma(root, connect)
                                 if(root.axiom == connect):
                                     break
-                                else:
-                                    #if the current node is not connected with the root, then the old axiom needs to be restored
-                                    self.removeAxioma(root, elem)
-                                    elem.axiomRemoved.remove(axiom)
-                                    axiom.axiomRemoved.remove(elem)
-                                    self.createAxioma(elem, axiom)
                 else:
-                    #if the node we want to connect with already has an axiom connection, remove that connection
-                    for elem in root.potentialAxiom: #nu pak je alleen maar de eerste uit de lijst en kijk je niet verder, dus ook niet als met dat element geen verbinding kan worden gemaakt!!!
-                        axiom = elem.axiom
-                        if((len(root.potentialAxiom) > 0) and root.axiom == None):
-                            if(elem not in root.axiomRemoved):
-                                if(elem.axiom != None):
-                                    self.removeAxioma(elem, elem.axiom)
-                                    connect = elem
-                                    self.createAxioma(root, connect)
-                                    if(root.axiom == connect):
-                                        break
-                                    else:
-                                        #if the current node is not connected with the root, then the old axiom needs to be restored
-                                        self.removeAxioma(root, elem)
-                                        elem.axiomRemoved.remove(axiom)
-                                        axiom.axiomRemoved.remove(elem)
-                                        self.createAxioma(elem, axiom)
+                    return None
+                # else:
+                #     print(len(root.potentialAxiom), root.axiom, "misschien hadnig om te weten dat ik hier moet kijken")
+                #     #if the node we want to connect with already has an axiom connection, remove that connection
+                #     for elem in root.potentialAxiom:
+                #         axiom = elem.axiom
+                #         if((len(root.potentialAxiom) > 0) and root.axiom == None):
+                #             if(elem not in root.axiomRemoved):
+                #                 if(elem.axiom != None):
+                #                     self.removeAxioma(elem, elem.axiom)
+                #                     connect = elem
+                #                     self.createAxioma(root, connect)
+                #                     if(root.axiom == connect):
+                #                         break
+                #                     else:
+                #                         #if the current node is not connected with the root, then the old axiom needs to be restored
+                #                         self.removeAxioma(root, elem)
+                #                         if(axiom in elem.axiomRemoved):
+                #                             elem.axiomRemoved.remove(axiom)
+                #                         if(elem in axiom.axiomRemoved):
+                #                             axiom.axiomRemoved.remove(elem)
+                #                         self.createAxioma(elem, axiom)
 
                 # else:
                 #     # if(root not in self.notConnected and root.axiom == None):
@@ -273,7 +288,7 @@ class Axioma:
             self.findOtherTree(root)
 
     def findOtherTree(self, root):
-        for rootPassed, treePassed in self.passedTrees:
+        for rootPassed in self.passedTrees:
             #check for each tree that we already constructed if there is an axiom connection possible
             if(self.root != rootPassed):
                 print("passed",rootPassed.data, self.root.data)
@@ -514,7 +529,7 @@ class Axioma:
                     self.doCross = True
                     return self.doCross
                 else:
-                    for vertex, tree in self.passedTrees:
+                    for vertex in self.passedTrees:
                         if(vertex.isLeaf == False):
                             leaves = []
                             leaves = self.find_leafCross(vertex, leaves)
@@ -543,7 +558,7 @@ class Axioma:
                     self.doCross = True
                     return self.doCross
                 else:
-                    for vertex, tree in self.passedTrees:
+                    for vertex in self.passedTrees:
                         if(vertex.isLeaf == False):
                             leaves = []
                             leaves = self.find_leafCross(vertex, leaves)
@@ -574,6 +589,8 @@ class Axioma:
                                 self.checkForCycle(vertex1, vertex2)
                             else:
                                 self.checkForCycle(vertex2, vertex1)
+                            self.toFalse(vertex1)
+                            self.toFalse(vertex2)
                             if(self.cycleFound == False):
                                 #if there is no cycle if this would be a connection, then we can delete the elements from the set
                                 if(vertex1 in noAxiom and vertex2 in noAxiom):
@@ -591,7 +608,7 @@ class Axioma:
         '''Check if there are any cycles that do not go through an i-link by adding the new axiom'''
         #als er een directed path van de output node naar de input node is, voordar de verbinding is gemaakt, dan zal er een cykel ontstaan.
         #begin bij de input node, als je door de verbindingen te volgen bij de output node terecht komt dan is er een cykel aanwezig
-        
+        goToNode = None
         if(rootInput.isLeaf == True):
             rootInput.visited = True
         else:
@@ -609,7 +626,6 @@ class Axioma:
         if(rootInput.parent != None):
             if(rootInput.parent.left != rootInput):
                 if(rootInput.parent.left.isLeaf == True):
-                    #print(rootInput.parent.left.data, rootInput.parent.left.polarity, rootOutput.data, rootOutput.polarity)
                     if(rootInput.parent.left.iLink == 1):
                         self.iLinkPassed = True
                     if(rootInput.parent.left == rootOutput):
@@ -621,15 +637,16 @@ class Axioma:
                             goToNode = rootInput.parent.left.axiom
                             if(rootInput.parent.parent != None):
                                 if(rootInput.parent.parent.left != rootInput.parent):
-                                    return self.checkForCycle(rootOutput, rootInput.parent.parent.left)
+                                    if(rootInput.parent.parent.left.visited == False):
+                                        return self.checkForCycle(rootOutput, rootInput.parent.parent.left)
                                 else:
-                                    return self.checkForCycle(rootOutput, rootInput.parent.parent.right)
-                            #return self.checkForCycle(rootOutput, rootInput.parent.left)
+                                    if(rootInput.parent.parent.right.visited == False):
+                                        return self.checkForCycle(rootOutput, rootInput.parent.parent.right)
                         else:
-                            return self.checkForCycle(rootOutput, rootInput.parent)
+                            if(rootInput.parent.visited == False):
+                                return self.checkForCycle(rootOutput, rootInput.parent)
                 else:
                     #if the current vertex is not a leaf, we want to go to the leaves
-                    print(rootInput.parent.left.left, "wtf waarom kom ik ook hier")
                     if(rootInput.parent.left.left.visited == False):
                         return self.checkForCycle(rootOutput, rootInput.parent.left.left)
                     else:
@@ -653,43 +670,57 @@ class Axioma:
                             goToNode = rootInput.parent.right.axiom
                             if(rootInput.parent.parent != None):
                                 if(rootInput.parent.parent.left != rootInput.parent):
-                                    return self.checkForCycle(rootOutput, rootInput.parent.parent.left)
+                                    if(rootInput.parent.parent.left.visited == False):
+                                        return self.checkForCycle(rootOutput, rootInput.parent.parent.left)
                                 else:
-                                    return self.checkForCycle(rootOutput, rootInput.parent.parent.right)
+                                    if(rootInput.parent.parent.right.visited == False):
+                                        return self.checkForCycle(rootOutput, rootInput.parent.parent.right)
                         else:
-                            return self.checkForCycle(rootOutput, rootInput.parent)
+                            if(rootInput.parent.visited == False):
+                                return self.checkForCycle(rootOutput, rootInput.parent)
                 else:
                     #if the current vertex is not a leaf, we want to go to the leaves
-                    return self.checkForCycle(rootOutput, rootInput.parent.right.left)
+                    if(rootInput.parent.right.left.visited == False):
+                        return self.checkForCycle(rootOutput, rootInput.parent.right.left)
                     if(self.cycleFound == False):
-                        return self.checkForCycle(rootOutput, rootInput.parent.right.right)
+                        if(rootInput.parent.right.right.visited):
+                            return self.checkForCycle(rootOutput, rootInput.parent.right.right)
             else:
-                return self.checkForCycle(rootOutput, rootInput.parent)
+                if(rootInput.parent.visited == False):
+                    return self.checkForCycle(rootOutput, rootInput.parent)
 
             #check if the current node we are at is the same as the output node, this would be a cycle
-            if(goToNode == rootOutput):
-                print("Same")
-                return self.checkForCycle(rootOutput, goToNode)
+            if(goToNode != None):
+                if(goToNode == rootOutput):
+                    print("Same")
+                    if(goToNode.visited == False):
+                        return self.checkForCycle(rootOutput, goToNode)
             
-            if(goToNode.parent != None):
-                if(goToNode.parent.right != goToNode):
-                    #kijk of de dichtsbijzijnde buur van de node toevallig de node is die we zoeken voor een cykel
-                    if(goToNode.parent.right == rootOutput):
-                        self.cycleFound = True #hier nog checken voor axioma!
-                        return self.cycleFound
+                if(goToNode.parent != None):
+                    if(goToNode.parent.right != goToNode):
+                        #kijk of de dichtsbijzijnde buur van de node toevallig de node is die we zoeken voor een cykel
+                        if(goToNode.parent.right == rootOutput):
+                            self.cycleFound = True #hier nog checken voor axioma!
+                            return self.cycleFound
+                        else:
+                            if(goToNode.parent.visited == False):
+                                return self.checkForCycle(rootOutput, goToNode.parent)
+                    elif(goToNode.parent.left != goToNode):
+                        if(goToNode.parent.left == rootOutput):
+                            print("er is een cykel gevonden")
+                            self.cycleFound = True
+                            return self.cycleFound
+                        else:
+                            if(goToNode.parent.visited == False):
+                                return self.checkForCycle(rootOutput, goToNode.parent)
                     else:
-                        return self.checkForCycle(rootOutput, goToNode.parent)
-                elif(goToNode.parent.left != goToNode):
-                    if(goToNode.parent.left == rootOutput):
-                        print("er is een cykel gevonden")
-                        self.cycleFound = True
-                        return self.cycleFound
-                    else:
-                        return self.checkForCycle(rootOutput, goToNode.parent)
+                        if(goToNode.parent.visited == False):
+                            return self.checkForCycle(rootOutput, goToNode.parent)
                 else:
-                    return self.checkForCycle(rootOutput, goToNode.parent)
+                    #if the current node has no parent, and we already checked the children (if they have any), then there is no cycle
+                    print("een cykel is niet mogelijk, dus de axioma verbinding mag blijven")
+                    return self.cycleFound
             else:
-                #if the current node has no parent, and we already checked the children (if they have any), then there is no cycle
                 print("een cykel is niet mogelijk, dus de axioma verbinding mag blijven")
                 return self.cycleFound
         else:
@@ -740,9 +771,9 @@ class BuildStartTree:
             self.build(root, tree, typelist, type_polarity)
             #tree.traverseInorder(root)
 
-            passedTrees.append([root, tree])
+            passedTrees.append(root)
             #op dit punt heb je (als je net begonnen bent) 1 boom gemaakt. Nu wil je dus alvast kijken naar welke mogelijke axioma verbindingen er zijn.
-            axioma_object = Axioma(root, tree, passedTrees, connected, axiomList)
+            axioma_object = Axioma(root, passedTrees, connected, axiomList)
             axioList = axioma_object.find_leaf(root)
             if(axioList != None and axioList != []):
                 axiomList = axioList
@@ -880,7 +911,7 @@ class Product:
 
 
 def main():
-    read_sentence = read
+    read_sentence = Read
     linkedlist = read_sentence.lijst
     obj = BuildStartTree(linkedlist)
     read_root = obj.readRoot()
