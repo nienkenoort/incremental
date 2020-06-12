@@ -1,3 +1,7 @@
+#Author: Nienke Noort 
+#Student number (Utrecht University): 6200451
+#Supervisor: Gijs J. Wijnholds
+
 class Lexicon:
     """
     A class that forms a dictionary of all of the words with their corresponding types that are necessary for building a proofnet of any random sentence.
@@ -38,6 +42,13 @@ class Lexicon:
         lexicon["hoed"] = "N"
         lexicon["en"] = "(N\\N)/N"
         lexicon["laars"] = "N"
+
+        lexicon["the"] = "N/CN"
+        lexicon["horse"] = "CN"
+        lexicon["raced"] = "N\S"
+        lexicon["past"] = "((S\\N)\\(N\\S))/N"
+        lexicon["the"] = "N/CN"
+        lexicon["barn"] = "CN"
         return self.lexicon
 
 def main():
