@@ -1,3 +1,7 @@
+#Author: Nienke Noort 
+#Student number (Utrecht University): 6200451
+#Supervisor: Gijs J. Wijnholds
+
 import string
 from pyparsing import Word, Literal, opAssoc, infixNotation
 
