@@ -71,14 +71,13 @@ class Tree:
             self.traverseInorder(root.right)
 
 class Axioma:
-    def __init__(self, root, passedTrees, connected, tempList):
+    def __init__(self, root, passedTrees, tempList):
         '''kijken welke axioma's moeten ontstaan vanuit vertex met polarity'''
         self.root = root
         self.passedTrees = passedTrees
         self.cycleFound = False
         self.iLinkPassed = False
         self.doCross = False
-        self.connected = connected #a list with lists containing all possible axiom combinations by saving all axiom tuples where (output, input)
         self.tempList = tempList
         #self.notConnected = [] #save all vertices that are not connected
 
@@ -106,7 +105,6 @@ class Axioma:
             self.toFalse(root)
             self.toFalse(rootOtherTree)
             if(mostRightLeaf != None):
-                print(root.label, mostRightLeaf.label, "kom ik hier ook ofzo??????")
                 if(root.axiom == None):                            
                     #root.potentialAxiom.append(mostRightLeaf)
                     # if(root in self.notConnected):
@@ -118,7 +116,6 @@ class Axioma:
                     if(root.axiom != mostRightLeaf):
                         withAxiom = []
                         if((len(root.potentialAxiom) > 0) and root.axiom == None):
-                            print(root.label ,"eerst maar even kijken of ik hier kom")
                             #in this case we did add possible axioms to the list
                             connect = None
                             for elem in root.potentialAxiom:
@@ -278,7 +275,6 @@ class Axioma:
             else:
                 return None
         if(vertexIn.isLeaf == True):
-            #print( "kijken welke waarde al ip trye stond " , vertexIn.label, vertexIn.data, vertexIn.polarity, vertexOut.label, vertexOut.data, vertexIn.polarity)
             if(vertexIn.data == vertexOut.data and vertexIn.polarity != vertexOut.polarity):
                 print("wat voeg je aan je lijst toe?", vertexOut.label, vertexIn.label, len(vertexOut.potentialAxiom))
                 vertexOut.potentialAxiom.append(vertexIn) #add to potential list, we will eventually connect with the first element in this list
@@ -378,6 +374,9 @@ class Axioma:
 
     def toFalse(self, root):
         '''After trying to find an axiom connection for one leaf, we want to put back all vertex.visited values to false.'''
+        if(root.isLeaf == False):
+            if(root.left.visited == True or root.right.visited == True):
+                root.visited = True
         if(root.visited == True):
             #if the visited value of the current vertex is True, then make it true and go to the next vertex
             if(root.right != None and root.left != None):
@@ -676,9 +675,12 @@ class Axioma:
                     if(goToNode.parent.right != goToNode):
                         #kijk of de dichtsbijzijnde buur van de node toevallig de node is die we zoeken voor een cykel
                         if(goToNode.parent.right == rootOutput):
-                            self.cycleFound = True #hier nog checken voor axioma!
+                            self.cycleFound = True
                             return self.cycleFound
                         else:
+                            if(goToNode.parent.right.axiom != None):
+                                if(goToNode.parent.right.axiom.visited == False):
+                                    return self.checkForCycle(rootOutput, goToNode.parent.right.axiom) #DIT is nieuw!
                             if(goToNode.parent.visited == False):
                                 return self.checkForCycle(rootOutput, goToNode.parent)
                     elif(goToNode.parent.left != goToNode):
@@ -687,6 +689,9 @@ class Axioma:
                             self.cycleFound = True
                             return self.cycleFound
                         else:
+                            if(goToNode.parent.left.axiom != None):
+                                if(goToNode.parent.left.axiom.visited == False):
+                                    return self.checkForCycle(rootOutput, goToNode.parent.left.axiom) #DIT is nieuw!
                             if(goToNode.parent.visited == False):
                                 return self.checkForCycle(rootOutput, goToNode.parent)
                     else:
@@ -723,7 +728,6 @@ class BuildStartTree:
         linkedList = self.linkedList
         node = linkedList.root
         passedTrees = []
-        connected = []
         axiomList = []
         while node:
             root = None
@@ -747,15 +751,11 @@ class BuildStartTree:
 
             passedTrees.append(root)
             #op dit punt heb je (als je net begonnen bent) 1 boom gemaakt. Nu wil je dus alvast kijken naar welke mogelijke axioma verbindingen er zijn.
-            axioma_object = Axioma(root, passedTrees, connected, axiomList)
+            axioma_object = Axioma(root, passedTrees, axiomList)
             axioList = axioma_object.find_leaf(root)
             if(axioList != None and axioList != []):
                 axiomList = axioList
             node = node.next
-
-        #nu ben je alle bomen langs gegaan, kijk naar de knopen die nog geen verbinding hebben
-        connected.append(axiomList)
-        print(len(connected))
 
     def build(self, root, tree, typelist, type_polarity):
         connective_incl = False
