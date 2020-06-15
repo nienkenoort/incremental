@@ -71,7 +71,7 @@ class Tree:
             self.traverseInorder(root.right)
 
 class Axioma:
-    def __init__(self, root, passedTrees, tempList):
+    def __init__(self, root, passedTrees, tempList, notConnected):
         '''kijken welke axioma's moeten ontstaan vanuit vertex met polarity'''
         self.root = root
         self.passedTrees = passedTrees
@@ -79,7 +79,7 @@ class Axioma:
         self.iLinkPassed = False
         self.doCross = False
         self.tempList = tempList
-        #self.notConnected = [] #save all vertices that are not connected
+        self.notConnected = notConnected #save all vertices that are not connected
 
     def find_leaf(self, root):
         #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
@@ -89,7 +89,7 @@ class Axioma:
             print("we gaan nu kijken of we de huidige boom kunnen verbinden", root.label)
             self.findOtherTree(root)
             #return self.connected
-            return (self.tempList)
+            return self.tempList, self.notConnected
             #return self.notConnected
         else:
             #if the current vertex is not a leaf and it has children, go to that child
@@ -106,11 +106,6 @@ class Axioma:
             self.toFalse(rootOtherTree)
             if(mostRightLeaf != None):
                 if(root.axiom == None):                            
-                    #root.potentialAxiom.append(mostRightLeaf)
-                    # if(root in self.notConnected):
-                    #     self.notConnected.remove(root)
-                    # if(mostRightLeaf in self.notConnected):
-                    #     self.notConnected.remove(mostRightLeaf)
                     self.createAxioma(root, mostRightLeaf)
                     #if the just made axiom was removed, we need to create another axiom
                     if(root.axiom != mostRightLeaf):
@@ -130,7 +125,7 @@ class Axioma:
                                         else:
                                             #if the current node is not connected with the root, then the old axiom needs to be restored
                                             self.removeAxioma(root, elem)
-                                            self.createAxioma(elem, axiom)
+                                            #self.createAxioma(elem, axiom)
                                     else:
                                         #if the current node already has an axiom connection, then we want to add this node to the withAxiom[] for later use
                                         withAxiom.append(elem)
@@ -153,11 +148,15 @@ class Axioma:
                                             self.createAxioma(elem, axiom)
                                 else:
                                     #in this case no connection can be made
+                                    if(root not in self.notConnected and root.axiom == None):
+                                        #if no connection can be made, we add the node to the list
+                                        print("we added the following to the notcon list ",root.data, root.label, root.axiom)
+                                        self.notConnected.append(root)
                                     return None
                 else:
-                    # if(root not in self.notConnected and root.axiom == None):
-                    #     print("we added the following to the notcon list ",root.data, root.label, root.axiom)
-                    #     self.notConnected.append(root)
+                    if(root not in self.notConnected and root.axiom == None):
+                        print("we added the following to the notcon list ",root.data, root.label, root.axiom)
+                        self.notConnected.append(root)
                     return None
             else: 
                 #als er geen axiomaverbinding gemaakt is met de huidige boom, kijk je naar oude nodes waar je een connectie mee kunt maken met potentialAxiom
@@ -165,21 +164,22 @@ class Axioma:
                     #in this case we did add possible axioms to the list
                     connect = None
                     for elem in root.potentialAxiom:
+                        print(elem.data, elem.label)
                         axiom = elem.axiom
                         if(elem not in root.axiomRemoved):
+                            if(elem.axiom != None):
+                                print(elem.label, elem.axiom.label)
                             if(elem.axiom == None):
                                 connect = elem
                                 self.createAxioma(root, connect)
                                 if(root.axiom == connect):
                                     break
                 else:
+                    if(root not in self.notConnected and root.axiom == None):
+                        #if no connection can be made, we add the node to the list
+                        print("we added the following to the notcon list ",root.data, root.label, root.axiom)
+                        self.notConnected.append(root)
                     return None
-
-                # else:
-                #     # if(root not in self.notConnected and root.axiom == None):
-                #     #     print("we added the following to the notcon list ",root.data, root.label, root.axiom)
-                #     #     self.notConnected.append(root)
-                #     return None
         else:
             #if the other tree exists of only a single node, we need to check if that node can be connected
             if(rootOtherTree.data == root.data and rootOtherTree.polarity != root.polarity):
@@ -187,9 +187,9 @@ class Axioma:
                 if(root.axiom == None):
                     self.createAxioma(root, rootOtherTree)
             else:
-                # if(root not in self.notConnected and root.axiom == None):
-                #     print("we added the following to the notcon list ",root.data, root.label, root.axiom)
-                    # self.notConnected.append(root)
+                if(root not in self.notConnected and root.axiom == None):
+                    print("we added the following to the notcon list ",root.data, root.label, root.axiom)
+                    self.notConnected.append(root)
                 return None
 
     def find_vertex(self, root):
@@ -437,14 +437,14 @@ class Axioma:
         if((root.axiom != vertex or vertex.axiom != root) and (root.axiom == None and vertex.axiom == None) and 
         (vertex not in root.axiomRemoved and root not in vertex.axiomRemoved)):
             #if an axiom connection already exists between these vertices, we do not make another connection
-            # if(root in self.notConnected):
-            #     print("we have removed the following from the notcon list ", root.data, root.label, root.axiom)
-            #     self.notConnected.remove(root)
-            # if(vertex in self.notConnected):
-            #     print("we have removed the following from the notcon list ",vertex.data, vertex.label, vertex.axiom)
-            #     self.notConnected.remove(vertex)
             root.axiom = vertex
             vertex.axiom = root
+            if(root in self.notConnected):
+                print("we have removed the following from the notcon list ", root.data, root.label, root.axiom)
+                self.notConnected.remove(root)
+            if(vertex in self.notConnected):
+                print("we have removed the following from the notcon list ",vertex.data, vertex.label, vertex.axiom)
+                self.notConnected.remove(vertex)
             print("een axioma verbinding is gemaakt ", root.data ,root.label,  vertex.data, vertex.label )
             #als de verbinding is gemaakt dan wil je kijken of de verbinding uberhaupt mogelijk is
             #dit checken gaat telkens vanuit de output naar input polariteit, dus kijk eerst welke kant de axioma verbinding op loopt
@@ -468,8 +468,8 @@ class Axioma:
                 self.removeAxioma(root, vertex)
                 #remove last added item of list
                 self.tempList.pop()
-                # self.notConnected.append(root)
-                # self.notConnected.append(vertex)
+                self.notConnected.append(root)
+                self.notConnected.append(vertex)
 
             #set iLink back to false for next axiom
             self.iLinkPassed = False
@@ -729,12 +729,9 @@ class BuildStartTree:
         node = linkedList.root
         passedTrees = []
         axiomList = []
+        notConnected = []
         while node:
             root = None
-            left_vertex = None
-            right_vertex = None
-            left_pol = None
-            right_pol = None
             parent = None
             iLink = None
             tree = Tree()
@@ -743,7 +740,6 @@ class BuildStartTree:
             #check the connective of the root and call that connective class
             parser_obj = type_parser.TypeParser()
             typelist = parser_obj.createList(stringtype)
-            #print(type_polarity)
             root = tree.insertVertex(root, typelist, "root", type_polarity, parent, iLink)
             #if there is a connective in the string on which we need to split
             self.build(root, tree, typelist, type_polarity)
@@ -751,11 +747,26 @@ class BuildStartTree:
 
             passedTrees.append(root)
             #op dit punt heb je (als je net begonnen bent) 1 boom gemaakt. Nu wil je dus alvast kijken naar welke mogelijke axioma verbindingen er zijn.
-            axioma_object = Axioma(root, passedTrees, axiomList)
-            axioList = axioma_object.find_leaf(root)
-            if(axioList != None and axioList != []):
-                axiomList = axioList
+            axioma_object = Axioma(root, passedTrees, axiomList, notConnected)
+            axiomListAndnotConnected = axioma_object.find_leaf(root)
+            if(axiomListAndnotConnected != None):
+                if(axiomListAndnotConnected[0] != None and axiomListAndnotConnected[0] != []):
+                    axiomList = axiomListAndnotConnected[0]
+                if(axiomListAndnotConnected[1] != None and axiomListAndnotConnected[1] != []):
+                    notConnected = axiomListAndnotConnected[1]
+                for elem in notConnected:
+                    print(elem, elem.label, "dit zijn de elementen in de notConnected lijst")
             node = node.next
+        #in the notConnected list are all the nodes that do not have any axiom connections after creating the entire proofnet. 
+        #We want to search the Lexicon to create an axiom connection
+        # if(len(notConnected) > 0):
+        #     for elem in notConnected:
+        #         for elem2 in notConnected:
+        #             if(elem != elem2):
+        #                 #check of er tussen deze niet al een axioma kan worden gemaakt
+        #         print(elem.data, len(notConnected), "wanneer kom ik hier???")
+        #     self.findNewType(notConnected, passedTrees, axiomList)
+        print(len(notConnected))
 
     def build(self, root, tree, typelist, type_polarity):
         connective_incl = False
@@ -834,6 +845,88 @@ class BuildStartTree:
             self.labelLeaves += 1
             root.data = [root.data]
             root.isLeaf = True
+
+    def findNewType(self, notConnected, passedTrees, axiomList):
+        #this method is used to find new types for the types from the notConnected list by searching the lexicon.
+        #ik ga ervan uit dat kruizen niet meer mogelijk zijn, omdat hier met de opbouw van het bewijsnet rekening mee is gehouden
+        lexicon_obj = lexicon_parser.Lexicon()
+        lexicon_obj.createLexicon()
+        possibleType = None
+        otherTypes = []
+        size = len(notConnected)
+        newConnected = notConnected
+        for leaf in notConnected:
+            for lexicon_word, lexicon_type in lexicon_obj.lexicon.items():
+                print(leaf.data, size , "dit is onder andere de size")
+                if(leaf.data[0] in lexicon_type):
+                    print("gevonden", leaf.data[0], lexicon_type)
+                    possibleType = lexicon_type
+                    parser_obj = type_parser.TypeParser()
+                    typelist = parser_obj.createList(lexicon_type)
+                    if(len(typelist) == 1):
+                        print("hier komen we wel")
+                        root = None
+                        parent = None
+                        iLink = None
+                        tree = Tree()
+                        #check the connective of the root and call that connective class
+                        root = tree.insertVertex(root, typelist, "root", 1, parent, iLink)
+                        #if there is a connective in the string on which we need to split
+                        self.build(root, tree, typelist, 1)
+                        axioma_object = Axioma(root, passedTrees, axiomList, notConnected)
+                        axiomListAndnotConnected = axioma_object.find_leaf(root)
+                        #for elem in axiomListAndnotConnected[1]:
+                        if(not axiomListAndnotConnected[1]):
+                            print("list is empty", lexicon_word)
+                            break
+                        if(axiomListAndnotConnected != None):
+                            print(axiomListAndnotConnected[1])
+                            if(len(axiomListAndnotConnected[1]) > size):
+                                tree = None
+                                print("remove the tree")
+                                break
+                    if(len(notConnected) >= len(typelist)):#nu telt typelist de connectieven mee?
+                        for element in typelist:
+                            foundType = False
+                            if(element != "/" and element != "\\" and element != "*"):
+                                print(element, "wtf bemn ik aan het doen")
+                                #in this case, the element is a type
+                                for leaf2 in newConnected:
+                                    print(leaf2.data, leaf2.label, "juckisdb")
+                                    if(leaf != leaf2):
+                                        print(leaf2.data,element, "dit is de tweede leaf")
+                                        if(leaf2.data[0] == element):
+                                            foundType = True
+                                            otherTypes.append(leaf2)
+                                            # newConnected.remove(leaf2)
+                                            print(leaf2.data[0], element, "dit werkt sws niet lol")
+                                #               break
+                                # if(foundType == True):
+                                #     break
+                        if(foundType == True):
+                            root = None
+                            parent = None
+                            iLink = None
+                            tree = Tree()
+                            #check the connective of the root and call that connective class
+                            root = tree.insertVertex(root, typelist, "root", 1, parent, iLink)
+                            #if there is a connective in the string on which we need to split
+                            self.build(root, tree, typelist, 1)
+                            axioma_object = Axioma(root, passedTrees, axiomList, notConnected)
+                            axiomListAndnotConnected = axioma_object.find_leaf(root)
+                            if(axiomListAndnotConnected != None):
+                                if(len(axiomListAndnotConnected[1]) > size):
+                                    tree = None
+                                    break
+                                #verwijder alle axiomas 
+                    #     break
+                    # else:
+                    #     #if this lexicon type is bigger than the amount we still need to connect, we want to look for another lexicon type
+                    #     break
+    
+    #def findLeaf(self, root):
+
+
 
 class Over:
     def __init__(self, polarity, typelist):
