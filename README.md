@@ -19,15 +19,15 @@ create a proofnet of the given sentence. If the sentence is not yet complete, th
 will be returned by the program.
 
 ## Usage
- * lexicon_parser.py
+ * lexicon_parser.py:
  Contains all the words with their corresponding types.
- * input_parser.py
+ * input_parser.py:
  Creates a LinkedList of the the input sentence and adds the polarity and type to each word.
- * linkedlist.py
+ * linkedlist.py:
  Is used for creating the LinkedList that was mentioned in the input_parser.py description.
- * type_parser.py
+ * type_parser.py:
  Creates lists of the types that were added to the list (these types were previously added as strings).
- * proofnet.py
+ * proofnet.py:
  Creates the actual proofnet and adds extra words to the sentence if it is incomplete.
  
 ## Examples
