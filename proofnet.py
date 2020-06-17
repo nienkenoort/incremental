@@ -1061,7 +1061,6 @@ class BuildStartTree:
                                 print(new_typelist)
                                 foundType = False
                                 if(element != "/" and element != "\\" and element != "*"):
-                                    print(element, "wtf bemn ik aan het doen")
                                     #in this case, the element is a type
                                     for leaf2 in newConnected:
                                         print(leaf2.data, leaf2.label, "juckisdb")
@@ -1071,7 +1070,6 @@ class BuildStartTree:
                                                 foundType = True
                                                 # otherTypes.append(leaf2)
                                                 newConnected.remove(leaf2)
-                                                print(leaf2.data[0], element, "dit werkt sws niet lol")
                                 if(foundType == False):
                                     #if we were not able to match an element from the typelist with an element from the notConnected list, 
                                     # then we know we are not looking for this type from the lexicon
