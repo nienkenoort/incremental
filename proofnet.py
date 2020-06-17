@@ -1024,9 +1024,6 @@ class BuildStartTree:
                                 typelistLength -= 1
                                 #in this case, the element can be something like [NP/S]
                                 for el in element:
-                                    if(len(el) == 1):
-                                        #dan is er geen splitsing nodig
-
                                     if(el == "/" or el == "\\" or el == "*"):
                                         typelistLength -= 1
                                     else:
