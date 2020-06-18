@@ -36,7 +36,7 @@ will be returned by the program.
  
  To build a sentence incrementally, the user types a part of the sentence, which misses one word. For example, the user can type "De rode hoed en", and the code will give back the full sentence including the missing word.
  
- OOk nog iets zeggen over incremental volgen??
+ To follow each step that is made while creating and remove axiom connections, the user has to type "y" (or something similar) after the sentence "Do you want to be able to follow the process of the incrementally build sentence? (y/n)" has appeared on the screen. If the user just wants to see the output of the program, he will have to enter "n" in the program. 
  
 ## Examples
  The file "examples.txt" gives some examples that run correctly in the program. The user can look at this file to get more insight on how
