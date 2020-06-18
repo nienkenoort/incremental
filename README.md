@@ -14,7 +14,7 @@ pip install pyparsing
 ## Features
 The program works on Python version 3.6.4. When the user runs the program by calling the proofnet.py file in their command prompt, 
 a line saying "Enter your sentence" will appear on the command prompt. The user will write a sentence, this can sentence can be 
-incomplete as well as complete. An example is "The red head and boot". Another example can be "The red head and". The program will 
+incomplete as well as complete. An example is "De rode hoed en laars". Another example can be "De rode laars en". The program will 
 create a proofnet of the given sentence. If the sentence is not yet complete, the program will complete the sentence. The completed sentence 
 will be returned by the program.
 
