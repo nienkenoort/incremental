@@ -36,6 +36,8 @@ will be returned by the program.
  
  To build a sentence incrementally, the user types a part of the sentence, which misses one word. For example, the user can type "De rode hoed en", and the code will give back the full sentence including the missing word.
  
+ OOk nog iets zeggen over incremental volgen??
+ 
 ## Examples
  The file "examples.txt" gives some examples that run correctly in the program. The user can look at this file to get more insight on how
   the program works.
