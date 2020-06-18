@@ -34,7 +34,7 @@ will be returned by the program.
  type will be "S", but it can be changed by just replacing the "S" with something else. This is done in line 59 of the file, after which a comment follows saying "Adds the resulting type to a list".
  Depending on what sentence will be the input, the lexicon_parser.py might need some changes as well. The type for the word "en" is different for the sentences "De rode hoed en laars" and "Alice en Bob vinden een oplossing". This type depends on what types will be connected with "en". The structure of an "en" type is always "(X\X)/X". For "De rode hoed en laars", "X" needs to be replaced with "N". For "Alice en Bob vinden een oplossing", "X" needs to be replaced with "NP".
  
- (OOk nog iets zeggen over incrementeel runnen of niet)
+ To build a sentence incrementally, the user types a part of the sentence, which misses one word. For example, the user can type "De rode hoed en", and the code will give back the full sentence including the missing word.
  
 ## Examples
  The file "examples.txt" gives some examples that run correctly in the program. The user can look at this file to get more insight on how
