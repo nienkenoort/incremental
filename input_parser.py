@@ -477,8 +477,18 @@ class Axioma:
                 self.find_leafOtherTree(root, rootPassed)
 
     def find_mostRightLeaf(self, vertexOut, vertexIn):
-        '''If the vertex we want to connect is closest to the right side of the neighbour tree.'''
-        #root of the tree in which we want to search now it vertexIn.
+        """
+        This method tries to find the most right leaf in the tree (of which the parameter 'vertexIn' is the root) and tries to 
+        create an axiomconnection between this leaf and the leaf that is given as the 'vertexOut' parameter. It adds all other 
+        leaves that can form a connection with the 'vertexOut' leaf as well to the potentialAxioms list of that leaf. The method
+        searches through the entire tree by calling itself recursively.
+
+        Returns
+        -------
+        vertexIn
+            a that can form an axiomconnection with the 'vertexOut' leaf.
+        None
+        """
         if(vertexIn.visited == True):
             if(vertexIn.parent != None):
                 return self.find_mostRightLeaf(vertexOut, vertexIn.parent)
@@ -486,16 +496,16 @@ class Axioma:
                 return None
         if(vertexIn.isLeaf == True):
             if(vertexIn.data == vertexOut.data and vertexIn.polarity != vertexOut.polarity):
-                vertexOut.potentialAxiom.append(vertexIn) #add to potential list, we will eventually connect with the first element in this list
+                vertexOut.potentialAxiom.append(vertexIn) #Add leaves that can connect with vertexOut to potentialAxiom list
                 vertexIn.visited = True
                 if(vertexIn.parent != None):
-                    #de rest van de boom doorzoeken voor een verbinding
+                    #Search rest of tree to find a leaf to connect with
                     if(vertexIn.parent.left != vertexIn):
                         if(vertexIn.parent.left.visited == False):
                             return self.find_mostRightLeaf(vertexOut, vertexIn.parent.left)
                         else:
                             return vertexIn
-                    else: #vertexIn.parent.right != vertexIn
+                    else: 
                         if(vertexIn.parent.right.visited == False):
                             return self.find_mostRightLeaf(vertexOut, vertexIn.parent.right)
                         else:
@@ -506,20 +516,18 @@ class Axioma:
                 vertexIn.visited = True
                 if(vertexIn.parent.left.visited == True and vertexIn.parent.right.visited == True):
                     vertexIn.parent.visited = True
-                #if we have reached a leaf, but this is not a leaf we can connect, we need to look at the left side
-                if(vertexIn == vertexIn.parent.left): #maar wat als je nu N*N hebt? dan is de polariteit en data hetzelfde?
-                    #if we have already looked at the left leaf and we cannot connect this one either, we need to go back to the most recent parent of which
-                    #we have not covered the left child yet
+                if(vertexIn == vertexIn.parent.left): #If we have reached a leaf, but this is not a leaf we can connect, we need to look at the left side
+                    #If the left leaf is already visited, and we cannot connect this one either, go back to the most recent parent of which
+                    #the left child was not yet covered
                     if(vertexIn.parent.parent != vertexIn and vertexIn.parent.visited == True and vertexIn.parent.parent != None):
-                        #if the current parent is already visited, we need to look at the right side of the tree
+                        #If the current parent is already visited, look at the right side of the tree
                         return self.find_mostRightLeaf(vertexOut, vertexIn.parent.parent.left)
                     else:
-                        #nu is er blijkbaar geen verbinding mogelijk in de huidige tree.
+                        #A connection with the current tree is not possible
                         return None
                 else:
                     return self.find_mostRightLeaf(vertexOut, vertexIn.parent.left)
-        else:
-            #go further into the tree
+        else: #Go further into the tree
             if(vertexIn.left.visited == True and vertexIn.right.visited == True):
                 vertexIn.visited = True
                 if(vertexIn.parent != None):
@@ -532,23 +540,28 @@ class Axioma:
                 elif(vertexIn.left.visited == True):
                     return self.find_mostRightLeaf(vertexOut, vertexIn.right) 
                 else:
-                    #if both are not visited yet, we choose the most right vertex
+                    #If both are not visited yet, choose the most right vertex
                     return self.find_mostRightLeaf(vertexOut, vertexIn.right)
 
     def toFalse(self, root):
-        '''After trying to find an axiom connection for one leaf, we want to put back all vertex.visited values to false.'''
+        """
+        Sets the values of visited of all nodes that are reachable from the 'root' parameter to false. The method calls itself
+        recursively so that it is able to search through the entire tree (and possibly other trees through axiomconnections).
+
+        Returns
+        -------
+        None
+        """
         if(root.isLeaf == False):
             if(root.left.visited == True or root.right.visited == True):
                 root.visited = True
-        if(root.visited == True):
-            #if the visited value of the current vertex is True, then make it true and go to the next vertex
+        if(root.visited == True): #If the visited value of the current vertex is True, then go to the next vertex
             if(root.right != None and root.left != None):
                 if(root.right.visited == True):
                     return self.toFalse(root.right)
                 elif(root.left.visited == True):
                     return self.toFalse(root.left)
-                else:
-                    #if both the left and the right child have a visited value of False, the root will get a value of false as well
+                else: #If both the left and the right child have a visited value of False, the root will get a value of False as well
                     root.visited = False
                     if(root.axiom != None):
                         if(root.axiom.visited == True):
@@ -563,7 +576,7 @@ class Axioma:
                     if(root.parent.left.left.visited == True or root.parent.left.right.visited == True):
                         root.parent.left.visited = True
                 if(root.parent.right.visited == True):
-                    #leaves will always get a visited value of false, if we have passed them
+                    #Leaves will always get a visited value of false, if we have passed them
                     root.visited = False
                     if(root.axiom != None):
                         if(root.axiom.visited == True):
@@ -582,28 +595,32 @@ class Axioma:
                             return self.toFalse(root.axiom)
                     if(root.parent != None):
                         return self.toFalse(root.parent)
-            else:
+            else: #If the vertex has no parent, set its value to False
                 root.visited = False
                 if(root.axiom != None):
                     if(root.axiom.visited == True):
                         return self.toFalse(root.axiom)
                 if(root.parent != None):
                     return self.toFalse(root.parent)
-        else:
+        else: #If the value of the current vertex was already set to False, then go to the parent
             if(root.parent != None):
                 return self.toFalse(root.parent)
     
     def createAxioma(self, root, vertex):
-        '''het creeren van axioma verbinding tussen vertex en andere knoop.
-        Begin bij S(output), ga naar een S(input). Als deze S een left tag heeft, kijk naar het woord dat een right tag heeft en vind hierbij een type.
-        Als het woord een right tag heeft, ga naar de left tag en vind hierbij een type.
-        Doe opnieuw, totdat elke paren van typen verbonden zijn.
-        Als er typen over blijven die nog geen verbinding hebben, sla deze op.'''
+        """
+        Creates an axiomconnection between the leaves that are given as parameters. This method calls the checkForCycle and checkForCross 
+        so that invalid axiomconnections can be removed.
+
+        Returns
+        -------
+        None
+        """
         if((root.axiom != vertex or vertex.axiom != root) and (root.axiom == None and vertex.axiom == None) and 
         (vertex not in root.axiomRemoved and root not in vertex.axiomRemoved)):
-            #if an axiom connection already exists between these vertices, we do not make another connection
+            #If an axiom connection already exists between these vertices, we do not make another connection
             root.axiom = vertex
             vertex.axiom = root
+            #Remove the vertices that now have an axiomconnection from the notConnected list
             isInListRoot = False
             isInListVertex = False
             for element in self.notConnected:
@@ -619,9 +636,9 @@ class Axioma:
                 self.notConnected.remove(new_vertex)
             if(self.incremental == True):
                 print("An axiom connection has been created between the following leaves (data, label) :", root.data ,root.label,  vertex.data, vertex.label )
-            #als de verbinding is gemaakt dan wil je kijken of de verbinding uberhaupt mogelijk is
-            #dit checken gaat telkens vanuit de output naar input polariteit, dus kijk eerst welke kant de axioma verbinding op loopt
+            #After a connection was created, check if this connection is valid
             if(root.polarity == 0):
+                #These methods depend on what vertex has an output polarity and what vertex has an input polarity
                 self.checkForCycle(root, vertex)
                 self.checkForCross(root, vertex)
                 self.axiomConnections.append([root, vertex])
@@ -629,12 +646,13 @@ class Axioma:
                 self.checkForCycle(vertex, root)
                 self.checkForCross(vertex, root)
                 self.axiomConnections.append([vertex, root])
-            
+
+            #Set all visited values to False
             self.toFalse(root)
             self.toFalse(vertex)
 
             if((self.cycleFound == True and self.iLinkPassed == False) or self.doCross == True):
-                #in this case there is a cycle and we want to get rid of the last axiom made
+                #In this case there is a cycle thus get rid of the last axiom made
                 if(self.incremental == True):
                     print("A cycle or crossed links were caused by the last-made axiom connection (data, label): ",  root.data, root.label ,  vertex.data, vertex.label)
                 self.cycleFound = False
@@ -642,38 +660,52 @@ class Axioma:
                 if(self.incremental == True):
                     print("The following axiom connection was removed (data, label): ",  root.data, root.label ,  vertex.data, vertex.label)
                 self.removeAxioma(root, vertex)
-                #remove last added item of list
+                #Remove last added item of list
                 self.axiomConnections.pop()
+                #Add these vertices back to the notConnected list
                 self.notConnected.append(root)
                 self.notConnected.append(vertex)
 
-            #set iLink back to false for next axiom
+            #Set iLink back to false for next axiom
             self.iLinkPassed = False
     
     def find_leafCross(self, root, leaves):
-        #als er geen node meer is die onleed kan worden, dan moeten we axioma verbindingen maken die elke vertex langs gaat
-        if(root.isLeaf == True):
-            #if the current vertex is also a leaf, append to the list
+        """
+        Creates a list of all leaves that are reachable from the 'root' parameter.
+
+        Returns
+        -------
+        leaves
+            a list containing all leaves that are reachable from the 'root' parameter.
+        """
+        if(root.isLeaf == True): #If the current vertex is a leaf, append to the list
             leaves.append(root)
-        else:
-            #if the current vertex is not a leaf and it has children, go to that child
+        else: #If the current vertex is not a leaf and it has children, go to that child
             if(root.left != None and root.right != None):
                 self.find_leafCross(root.left, leaves)
                 self.find_leafCross(root.right, leaves)
         return leaves
 
     def checkForCross(self, rootOutput, rootInput):
-        '''Check if any axiom connections cross each other'''
+        """
+        Checks if any crossed connections are possible after adding the axiomconnection between the 
+        leaves that are given as parameters.
+
+        Returns
+        -------
+        doCross
+            a bool that has a value of True if crosses are found between (possible) connections, otherwise is False.
+        """
         if((rootOutput.label == (rootInput.label + 1)) or (rootOutput.label == (rootInput.label - 1))):
-            #if both axiom leaves appear next to each other, we know for sure that there will not be any crosses
+            #If both axiom leaves appear next to each other, there is no case in which there are crossed connections (thus return doCross with a value of False)
             return self.doCross
         else:
             noAxiom = []
-            #if not, we need to check what vertices appear between them and if these vertices can connect with each other
+            #If not, check what vertices appear between them and if these vertices can connect with each other
             if(rootOutput.label > rootInput.label):
-                #contract 1 from outputlabel, since 4-3=1, even though there are not any leaves between them
+                #Contract 1 from outputlabel, since 4-3=1, even though there are not any leaves between them
                 if(((rootOutput.label - 1) - rootInput.label) % 2 != 0):
-                    #if there is not an even amount of vertices between them, we know for sure they cannot all connect with another vertex without crossing
+                    #If there is not an even amount of vertices between them, there is a centainty that they cannot all connect with another vertex without crossing
                     self.doCross = True
                     return self.doCross
                 else:
@@ -684,35 +716,34 @@ class Axioma:
                             for leaf in leaves:
                                 if(leaf != rootOutput and leaf != rootInput):
                                     if(leaf.label > rootInput.label and leaf.label < rootOutput.label):
-                                        #if the current vertex is between the axiom vertices, we need to check if it has an axiom connection
+                                        #If the current vertex is between the axiom vertices, check if it has an axiomconnection
                                         if(leaf.axiom == None):
-                                            #if the leaf has no axiom connection, we will have to check later if such a connection is still possible by looking
+                                            #If the leaf has no axiomconnection, check later if such a connection is still possible by looking
                                             #  at all of the elements in the noAxiom list 
                                             noAxiom.append(leaf)
                                         else:
-                                            #if the leaf does have a connection, and the connection is not with any leaf that is also between the rootInput and rootOutput,
-                                            #then we know that there are crosses
+                                            #If the leaf does have a connection, and the connection is not with any leaf that is also between the rootInput and
+                                            #  rootOutput, then there are crosses
                                             if(leaf.axiom.label < rootInput.label or leaf.axiom.label > rootOutput.label):
                                                 self.doCross = True
                                                 return self.doCross
-                        else:
+                        else: #If the vertex is a leaf
                             if(vertex != rootOutput and vertex != rootInput):
                                 if(vertex.label > rootInput.label and vertex.label < rootOutput.label):
-                                    #if the current vertex is between the axiom vertices, we need to check if it has an axiom connection
+                                    #If the current vertex is between the axiom vertices, check if it has an axiomconnection
                                     if(vertex.axiom == None):
-                                        #if the leaf has no axiom connection, we will have to check later if such a connection is still possible by looking
+                                        #If the leaf has no axiom connection, check later if such a connection is still possible by looking
                                         #  at all of the elements in the noAxiom list 
                                         noAxiom.append(vertex)
                                     else:
-                                        #if the leaf does have a connection, and the connection is not with any leaf that is also between the rootInput and rootOutput,
-                                        #then we know that there are crosses
+                                        #If the leaf does have a connection, and the connection is not with any leaf that is also between the rootInput and 
+                                        # rootOutput, then there are crosses
                                         if(vertex.axiom.label < rootInput.label or vertex.axiom.label > rootOutput.label):
                                             self.doCross = True
                                             return self.doCross
-
             elif(rootOutput.label < rootInput.label):
                 if(((rootInput.label - 1) - rootOutput.label) % 2 != 0):
-                    #if there is not an even amount of vertices between them, we know for sure they cannot all connect with another vertex without crossing
+                    #If there is not an even amount of vertices between them, they cannot all connect with another vertex without crossing
                     self.doCross = True
                     return self.doCross
                 else:
@@ -723,38 +754,38 @@ class Axioma:
                             for leaf in leaves:
                                 if(leaf != rootOutput and leaf != rootInput):
                                     if(leaf.label < rootInput.label and leaf.label > rootOutput.label):
-                                        #if the current vertex is between the axiom vertices, we need to check if it has an axiom connection
+                                        #If the current vertex is between the axiom vertices, check if it has an axiom connection
                                         if(leaf.axiom == None):
-                                            #if the leaf has no axiom connection, we will have to check later if such a connection is still possible by looking
+                                            #If the leaf has no axiom connection, check later if such a connection is still possible by looking
                                             #  at all of the elements in the noAxiom list 
                                             noAxiom.append(leaf)
                                         else:
-                                            #if the leaf does have a connection, and the connection is not with any leaf that is also between the rootInput and rootOutput,
-                                            #then we know that there are crosses
+                                            #If the leaf does have a connection, and the connection is not with any leaf that is also between the rootInput and 
+                                            # rootOutput, then there are crosses
                                             if(leaf.axiom.label > rootInput.label or leaf.axiom.label < rootOutput.label):
                                                 self.doCross = True
                                                 return self.doCross
-                        else:
+                        else: #If the vertex is a leaf
                             if(vertex != rootOutput and vertex != rootInput):
                                 if(vertex.label > rootInput.label and vertex.label < rootOutput.label):
-                                    #if the current vertex is between the axiom vertices, we need to check if it has an axiom connection
+                                    #If the current vertex is between the axiom vertices, check if it has an axiom connection
                                     if(vertex.axiom == None):
-                                        #if the leaf has no axiom connection, we will have to check later if such a connection is still possible by looking
+                                        #If the leaf has no axiom connection, check later if such a connection is still possible by looking
                                         #  at all of the elements in the noAxiom list 
                                         noAxiom.append(vertex)
                                     else:
-                                        #if the leaf does have a connection, and the connection is not with any leaf that is also between the rootInput and rootOutput,
-                                        #then we know that there are crosses
+                                        #If the leaf does have a connection, and the connection is not with any leaf that is also between the rootInput and 
+                                        # rootOutput, then there are crosses
                                         if(leaf.axiom.label < rootInput.label or leaf.axiom.label > rootOutput.label):
                                             self.doCross = True
                                             return self.doCross
 
-            #hier checken of de elementen die geen axioma verbinding hebben mogelijk nog met elkaar verbonden kunnen worden
+            #Check if the elements that do not have an axiomconnection can possibly connect with each other
             for vertex1 in noAxiom:
                 for vertex2 in noAxiom:
                     if(vertex1 != vertex2):
                         if(vertex1.data == vertex2.data and vertex1.polarity != vertex2.polarity):
-                            #dan kan er nog een axioma ontstaan, mits er geen cykel is
+                            #In this case it is still possible that both leaves connect, if there is no cycle
                             if(vertex1.polarity == 0):
                                 self.checkForCycle(vertex1, vertex2)
                             else:
@@ -762,22 +793,29 @@ class Axioma:
                             self.toFalse(vertex1)
                             self.toFalse(vertex2)
                             if(self.cycleFound == False):
-                                #if there is no cycle if this would be a connection, then we can delete the elements from the set
+                                #If there is no cycle if this would be a connection, then delete the elements from the set
                                 if(vertex1 in noAxiom and vertex2 in noAxiom):
                                     noAxiom.remove(vertex1)
                                     noAxiom.remove(vertex2)
-            #set cycle back to false
+            #Set cycle back to false
             self.cycleFound = False
             if(len(noAxiom) > 0):
-                #if there are leaves that could not connect, set cross to true
+                #If there are leaves that could not connect, set cross to true
                 self.doCross = True
             return self.doCross
 
     def checkForCycle(self, rootOutput, rootInput):
-        '''Check if there are any cycles that do not go through an i-link by adding the new axiom'''
-        #als er een directed path van de output node naar de input node is, voordar de verbinding is gemaakt, dan zal er een cykel ontstaan.
-        #begin bij de input node, als je door de verbindingen te volgen bij de output node terecht komt dan is er een cykel aanwezig
-        #first look at the closest neighbour of the input node, go further into the tree if we do not reach the output node
+        """
+        Checks if a cycle was created because of the just made connection between the parameter leaves (rootOutput and rootInput).
+        It does so by starting in the rootInput leaf, and checking if it passes the rootOutput leaf. If it passes the rootOutput leaf,
+        a cycle was found.
+        The method also checks if the cycle goes through any i-links. In this case the cycle is permitted, and iLinkPassed is set to True.
+
+        Returns
+        -------
+        cycleFound
+            a bool that has a value of True if cycles are found between (possible) connections, otherwise is False.
+        """
         goToNode = None
         if(rootInput.isLeaf == True):
             rootInput.visited = True
@@ -785,78 +823,82 @@ class Axioma:
             if(rootInput.left.visited == True and rootInput.right.visited == True):
                 rootInput.visited = True
         if(rootInput.iLink == 1):
+            #If an i-link was passed, set iLinkPassed to True
             self.iLinkPassed = True
-            #if we have passed an i-link, we know that the cycle is legit and that we can stop searching???
         if(rootInput == rootOutput):
-            #if we have found the vertex that is the same as the output vertex, we know there is a cycle
+            #If a vertex was found that is the same as the output vertex, there is a cycle
             self.cycleFound = True
             return self.cycleFound
         if(rootInput.parent != None):
             if(rootInput.parent.left != rootInput):
                 if(rootInput.parent.left.isLeaf == True):
                     if(rootInput.parent.left.iLink == 1):
+                        #If an i-link was passed, set iLinkPassed to True
                         self.iLinkPassed = True
                     if(rootInput.parent.left == rootOutput):
+                        #If a vertex was found that is the same as the output vertex, there is a cycle
                         self.cycleFound = True
                         return self.cycleFound
-                    else:
+                    else: #Set visited to True and check the leaves that are connected
                         rootInput.parent.left.visited = True
                         if(rootInput.parent.left.axiom != None):
                             goToNode = rootInput.parent.left.axiom
-                            if(rootInput.parent.parent != None):
+                            if(rootInput.parent.parent != None): #Go further into the tree
                                 if(rootInput.parent.parent.left != rootInput.parent):
                                     if(rootInput.parent.parent.left.visited == False):
                                         return self.checkForCycle(rootOutput, rootInput.parent.parent.left)
                                 else:
                                     if(rootInput.parent.parent.right.visited == False):
                                         return self.checkForCycle(rootOutput, rootInput.parent.parent.right)
-                        else:
+                        else:#Go further into the tree
                             if(rootInput.parent.visited == False):
                                 return self.checkForCycle(rootOutput, rootInput.parent)
                 else:
-                    #if the current vertex is not a leaf, we want to go to the leaves
+                    #If the current vertex is not a leaf, go to the leaves
                     if(rootInput.parent.left.left.visited == False):
                         return self.checkForCycle(rootOutput, rootInput.parent.left.left)
-                    else:
+                    else: #If already visited, everything is covered and no cycle was found
                         return self.cycleFound
                     if(rootInput.parent.left.right.visited == False):
                         return self.checkForCycle(rootOutput, rootInput.parent.left.right)
-                    else:
+                    else:#If already visited, everything is covered and no cycle was found
                         return self.cycleFound
             elif(rootInput.parent.right != rootInput):
                 if(rootInput.parent.right.isLeaf == True):
                     if(rootInput.parent.right.iLink == 1):
+                        #If an i-link was passed, set iLinkPassed to True
                         self.iLinkPassed = True
                     if(rootInput.parent.right == rootOutput):
+                        #If a vertex was found that is the same as the output vertex, there is a cycle
                         self.cycleFound = True
                         return self.cycleFound
-                    else:
+                    else: #Set visited to True and check the leaves that are connected
                         rootInput.parent.right.visited = True
                         if(rootInput.parent.right.axiom != None):
                             goToNode = rootInput.parent.right.axiom
-                            if(rootInput.parent.parent != None):
+                            if(rootInput.parent.parent != None): #Go further into the tree
                                 if(rootInput.parent.parent.left != rootInput.parent):
                                     if(rootInput.parent.parent.left.visited == False):
                                         return self.checkForCycle(rootOutput, rootInput.parent.parent.left)
                                 else:
                                     if(rootInput.parent.parent.right.visited == False):
                                         return self.checkForCycle(rootOutput, rootInput.parent.parent.right)
-                        else:
+                        else: #Go further into the tree
                             if(rootInput.parent.visited == False):
                                 return self.checkForCycle(rootOutput, rootInput.parent)
                 else:
-                    #if the current vertex is not a leaf, we want to go to the leaves
+                    #If the current vertex is not a leaf, go to the leaves
                     if(rootInput.parent.right.left.visited == False):
                         return self.checkForCycle(rootOutput, rootInput.parent.right.left)
                     elif(rootInput.parent.right.right.visited == False):
                         return self.checkForCycle(rootOutput, rootInput.parent.right.right)
                     elif(rootInput.parent.right.visited == False):
                         return self.checkForCycle(rootOutput, rootInput.parent.right) 
-            else:
+            else: #Go further into the tree
                 if(rootInput.parent.visited == False):
                     return self.checkForCycle(rootOutput, rootInput.parent)
 
-            #check if the current node we are at is the same as the output node, this would be a cycle
+            #Check if the current vertex is the same as the output vertex, this would be a cycle
             if(goToNode != None):
                 if(goToNode == rootOutput):
                     if(goToNode.visited == False):
@@ -864,11 +906,12 @@ class Axioma:
             
                 if(goToNode.parent != None):
                     if(goToNode.parent.right != goToNode):
-                        #kijk of de dichtsbijzijnde buur van de node toevallig de node is die we zoeken voor een cykel
+                        #check if the closest neighbour causes a cycle
                         if(goToNode.parent.right == rootOutput):
+                            #If a vertex was found that is the same as the output vertex, there is a cycle
                             self.cycleFound = True
                             return self.cycleFound
-                        else:
+                        else: #Check the axiom connections
                             if(goToNode.parent.right.axiom != None):
                                 if(goToNode.parent.right.axiom.visited == False):
                                     return self.checkForCycle(rootOutput, goToNode.parent.right.axiom) 
@@ -876,35 +919,42 @@ class Axioma:
                                 return self.checkForCycle(rootOutput, goToNode.parent)
                     elif(goToNode.parent.left != goToNode):
                         if(goToNode.parent.left == rootOutput):
+                            #If a vertex was found that is the same as the output vertex, there is a cycle
                             self.cycleFound = True
                             return self.cycleFound
-                        else:
+                        else: #Check the axiom connections
                             if(goToNode.parent.left.axiom != None):
                                 if(goToNode.parent.left.axiom.visited == False):
                                     return self.checkForCycle(rootOutput, goToNode.parent.left.axiom)
                             if(goToNode.parent.visited == False):
                                 return self.checkForCycle(rootOutput, goToNode.parent)
-                    else:
+                    else: #Go further into the tree
                         if(goToNode.parent.visited == False):
                             return self.checkForCycle(rootOutput, goToNode.parent)
                 else:
-                    #if the current node has no parent, and we already checked the children (if they have any), then there is no cycle
+                    #If the current node has no parent, and the children were already covered (if they have any), then there is no cycle
                     return self.cycleFound
             else:
-                #a cycle is not possible
+                #A cycle is not possible
                 return self.cycleFound
         else:
-            #a cycle is not possible
+            #A cycle is not possible
             return self.cycleFound
     
     def removeAxioma(self, type1, type2):
-        '''verwijderen axioma tussen type1 en type2'''
+        """
+        Removes the axiomconnection between the leaves that are given as parameters.
+
+        Returns
+        -------
+        None
+        """
         if(self.incremental == True):
             print("The following axiom connection was removed (data, label): ", type1.data, type1.label, type2.data, type2.label)
         if(type1.axiom == type2 or type2.axiom != type1):
             type1.axiom = None
             type2.axiom = None
-            #keep track of the axioms we already tried to make, but had to remove
+            #Keep track of the axioms that were already made, but had to be removed
             type1.axiomRemoved.append(type2)
             type2.axiomRemoved.append(type1)
 
