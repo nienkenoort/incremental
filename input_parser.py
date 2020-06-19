@@ -17,7 +17,7 @@ class Input:
     ----------
     sentence : str
         name of the string that was read from the console and will be become the Linked List.
-    sentence : str
+    resultingType : str
         name of the string that was read from the console and will be become the type of the sentence.
 
     Methods
