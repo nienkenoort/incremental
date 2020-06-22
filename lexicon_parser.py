@@ -36,7 +36,6 @@ class Lexicon:
             a dictionary of all words with their types of which we can choose when creating a proofnet.
         """
         lexicon = self.lexicon
-        #wanneer ik de lexicon ga importeren kan ik hier wel een loop van maken die de elementen automatisch toevoegt zonder dat ik alles los moet doen
         lexicon["de"] = "NP/N"
         lexicon["rode"] = "N/N"
         lexicon["hoed"] = "N"
@@ -46,9 +45,37 @@ class Lexicon:
         lexicon["the"] = "N/CN"
         lexicon["horse"] = "CN"
         lexicon["raced"] = "N\S"
-        lexicon["past"] = "((S\\N)\\(N\\S))/N"
-        lexicon["the"] = "N/CN"
+        lexicon["past"] = "((N\\S)\\(N\\S))/N"
         lexicon["barn"] = "CN"
+
+        lexicon["someone"] = "S/(N\\S)"
+        lexicon["loves"] = "(N\\S)/N"
+        lexicon["everyone"] = "(S/N)\S"
+
+        lexicon["kid"] = "N"
+        lexicon["who"] = "((N\\N)/(S/NP))"
+        lexicon["Kelly"] = "NP"
+        lexicon["Terry"] = "NP"
+        lexicon["Robin"] = "NP"
+        lexicon["likes"] = "((NP\\S)/NP)"
+        lexicon["believes"] = "((NP\\S)/S)"
+        lexicon["knows"] = "((NP\\S)/S)"
+
+        lexicon["iemand"] = "S/(NP\\S)"
+        lexicon["verdween"] = "NP\\S"
+        lexicon["gisteren"] = "(NP\\S)\\(NP\\S)"
+
+        lexicon["mensen"] = "N"
+        lexicon["die"] = "(N\\N)/(NP\\S)"
+        lexicon["dieren"] = "NP"
+        lexicon["eten"] = "NP\\(NP\\S)"
+
+        lexicon["Alice"] = "NP"
+        #lexicon["en"] = "(NP\\NP)/NP"
+        lexicon["Bob"] = "NP"
+        lexicon["vinden"] = "(NP\\S)/NP"
+        lexicon["oplossing"] = "N"
+
         return self.lexicon
 
 def main():
