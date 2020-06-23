@@ -475,6 +475,14 @@ class Axioma:
                 #If the root of the current tree is not the same as the root of the tree that we want to connect, 
                 # then we can try to find leaves to connect in that tree (since a connection with another tree is preferred).
                 self.find_leafOtherTree(root, rootPassed)
+            elif(root.left == None and root.right == None):
+                if(root.axiom == None):
+                    isInList = False
+                    for element in self.notConnected:
+                        if(element.label == root.label):
+                            isInList = True
+                    if(isInList == False):
+                        self.notConnected.append(root)
 
     def find_mostRightLeaf(self, vertexOut, vertexIn):
         """
@@ -1284,12 +1292,11 @@ class BuildStartTree:
                                     foundType = False
                                     if(len(element) < 3):
                                         if(element != "/" and element != "\\" and element != "*"):
-                                            #in this case, the element is a type
+                                            #In this case, the element is a type
                                             for leaf2 in newConnected:
-                                                if(leaf != leaf2):
-                                                    if(leaf2.data[0] == element):
-                                                        foundType = True
-                                                        newConnected.remove(leaf2)
+                                                if(leaf2.data[0] == element):
+                                                    foundType = True
+                                                    newConnected.remove(leaf2)
                                         else:
                                             foundType = True
                                     else: #If the current element is a type like [NP/S]
